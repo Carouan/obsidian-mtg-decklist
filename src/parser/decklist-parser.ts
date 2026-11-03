@@ -64,6 +64,10 @@ function applyDirective(
 		}
 		return true;
 	}
+	if (key === "view" && (value === "list" || value === "gallery")) {
+		ctx.directives.view = value;
+		return true;
+	}
 	if (key === "group" || key === "grouping") {
 		if (VALID_GROUP_VALUES.has(value as DecklistDirectives["group"])) {
 			ctx.directives.group = value as DecklistDirectives["group"];

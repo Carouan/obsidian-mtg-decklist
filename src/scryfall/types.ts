@@ -57,6 +57,10 @@ export interface ScryfallCard {
 	colors?: string[];
 	color_identity?: string[];
 	set?: string;
+	set_name?: string;
+	released_at?: string;
+	rarity?: string;
+	prints_search_uri?: string;
 	collector_number?: string;
 	scryfall_uri?: string;
 	image_uris?: ScryfallImageUris;
@@ -64,6 +68,23 @@ export interface ScryfallCard {
 	layout?: string;
 	prices?: ScryfallPrices;
 	legalities?: ScryfallLegalities;
+}
+
+export interface ScryfallCardPage {
+	data: ScryfallCard[];
+	total_cards?: number;
+	has_more: boolean;
+	next_page?: string;
+}
+
+export interface ScryfallSet {
+	id: string;
+	code: string;
+	name: string;
+	set_type?: string;
+	released_at?: string;
+	card_count?: number;
+	icon_svg_uri?: string;
 }
 
 export interface CachedCardEntry {

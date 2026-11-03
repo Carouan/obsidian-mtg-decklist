@@ -27,6 +27,9 @@ Inline mana symbols and hoverable card links in a regular note:
 - **Sorting** – Sort within each section by name, by CMC then name, or keep the order you typed.
 - **Card previews** – Hover (desktop) or tap (mobile) any card name for a full Scryfall image preview. On mobile, inline card taps show the preview only; use **Open on Scryfall** in the overlay to open the site (avoids the browser stealing the tap).
 - **French card names, previews and interface** – Opt in to French names, matching art, headings, statistics, combo labels and settings. Fall back to English for cards without a French printing; the default remains English.
+- **Live sorting and card galleries** – Switch an existing rendered deck between alphabetical, mana-value or source order, and between compact list and full-card gallery without editing the note.
+- **Scryfall catalog explorer** – Explore an extension with color/type/rarity filters applied **before fetching its cards**, or list the printings of any card in a `cardlist` block. Browse paged, lazily loaded visual results and copy exact set/collector references.
+- **Quick editor templates** – Type `deck-cmd-fr`, `deck-60-fr`, `deck-vintage-en`, `foudre-ext` or `ext-mirage` on a line and select the suggestion to insert the corresponding code block. No Templater dependency.
 - **Color identity & legality warnings** – Inline icons flag cards that break the deck's color identity or are not legal in your chosen format.
 - **Card role tags** – Manually tag cards with roles like `#ramp`, `#draw`, `#removal`, `#boardwipe`, `#counterspell`, `#wincon` (and your own custom tags) — each shows up as a small coloured icon next to the card name.
 - **Specific printings** – Pin a card to one exact printing with `(SET) NUMBER` syntax (e.g. `1 Ancient Den (MRD) 278`), the same style Moxfield and MTGO exports use — the card and its image preview use that printing.
@@ -216,6 +219,7 @@ Supported keys:
 | `sort` | `name`, `cmc-name`, `source` |
 | `legality` (or `format`) | `off`, `standard`, `pioneer`, `modern`, `legacy`, `vintage`, `pauper`, `commander`, `brawl` |
 | `language` (or `lang`) | `en` (default) or `fr`, overriding the language in the plugin settings for this deck |
+| `view` | `list` (default) or `gallery`, the initial rendering mode. The header control can override it temporarily. |
 | `moxfield` (or `source`) | A Moxfield deck URL or public deck ID — see [Loading from Moxfield](#loading-from-moxfield). |
 | `archidekt` (or `source`) | An Archidekt deck URL or deck ID — see [Loading from Archidekt](#loading-from-archidekt). |
 
@@ -249,6 +253,65 @@ Card names in the source decklist should remain in their normal **English/Oracle
 The card images reflect the text printed in that language; the canonical English/Oracle data still drives rules and legality. Source syntax and exports remain in English for interoperability, though `# Réserve`, `# Commandant`, and `# Cartes envisagées` are accepted as section aliases. A few French aliases are also accepted in combo block keys (e.g. `nom:`, `résultat:`, `étapes:`, `boucle:`). User-authored content is never machine-translated. Inline `mtg:Card Name` links follow the **global** language setting; custom Markdown link labels such as `[Foudre](mtg:Lightning Bolt)` remain untouched. Reopen notes to refresh decklists after changing the language setting, and reload the plugin to refresh command names in Obsidian's command palette.
 
 Only **English and French are currently supported** for UI text and card previews. Other Scryfall languages can be added by registering their code, providing an interface translation dictionary and checking the result in an isolated Obsidian vault. See the [developer instructions](docs/adding-a-language.md).
+
+## Interactive decks, extensions and card printings
+
+**Deck controls.** Every rendered `decklist` now has two compact selectors in its header. The **Sort** selector changes between *Name*, *Mana value, then name* and *Source order*. The **Display** selector switches between *List* and *Gallery*. These controls change only the rendered view; they **do not rewrite the note**. Start in gallery mode using `view: gallery`:
+
+````markdown
+```decklist
+language: fr
+group: auto
+view: gallery
+# Deck principal
+4 Lightning Bolt
+4 Spark Elemental
+4 Mountain
+```
+````
+
+**Explore a set.** A new `extension` block renders a search panel **without downloading a complete set on note load**. Change the color checkboxes, card type and rarity, then click *Show cards*. The Scryfall search is filtered server-side before results are returned, with a **24-card initial display**, lazy thumbnail loading, and a *Show more / Load next page* button. Use the lookup button to find a set by name or code.
+
+````markdown
+```extension
+language: fr
+set: mir
+colors: red, blue
+type: creature
+rarity: rare
+view: gallery
+sortby: color
+```
+````
+
+Set codes use Scryfall's system: **Mirage = `mir`**. The available color checkboxes and type/rarity selectors are only **initial defaults**; changes in the UI take effect when *Show cards* is clicked. The sort and list/gallery selectors act on cards already loaded. Color filters are inclusive (*red or blue*); selecting several colors does not require cards to contain all those colors.
+
+**Find a card's printings.** A new `cardlist` block retrieves printings by the card's Oracle identity. French printed names such as `Foudre` can be used in the card lookup. `unique: set` shows one representative printing per expansion; `unique: prints` shows every available printing.
+
+````markdown
+```cardlist
+language: fr
+card: Foudre
+unique: set
+view: gallery
+sort: set
+```
+````
+
+Catalog galleries show set names and collector numbers, and a **Copy printing** control provides a line such as `1 Lightning Bolt (M10) 146` for reuse in a decklist. Images are fetched lazily and the French image is requested for the **same set and collector number** where available; otherwise the exact English edition remains visible. Catalog search data uses a bounded **in-memory** cache rather than growing the Obsidian `data.json` file. Image files remain on Scryfall's CDN.
+
+**Template shortcuts.** On a line of its own in the Obsidian editor, type one of the following, then *select* the displayed suggestion to expand it:
+
+| Shortcut | Expansion |
+| --- | --- |
+| `deck-cmd-fr` | French Commander, explicit sections, `legality: commander` |
+| `deck-cmd-auto-fr` | French Commander with automatic type grouping |
+| `deck-60-fr` | French 60-card casual deck, reserve and maybeboard |
+| `deck-vintage-en` | Vintage deck with English headings |
+| `foudre-ext` | `cardlist` for the printings of Foudre |
+| `ext-mirage` | `extension` set browser for Mirage |
+
+No text is replaced without accepting the suggestion. `group: manual` is used for templates with explicitly named sections; `legality:` takes a format name (not `on`/`off` together with a second `format:` directive). See also the [French guide](docs/guide-fr.md).
 
 ## Loading from Moxfield
 

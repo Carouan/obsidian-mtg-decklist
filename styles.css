@@ -1,5 +1,182 @@
 /* MTG Decklist plugin styles */
 
+/* Shared deck controls and card gallery (no heavy external UI dependency). */
+.mtg-decklist-toolbar,
+.mtg-catalog-actions,
+.mtg-catalog-display-controls {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.4em;
+	flex-wrap: wrap;
+}
+.mtg-decklist-toolbar {
+	margin-left: auto;
+	font-size: 0.8em;
+}
+.mtg-decklist-toolbar select,
+.mtg-catalog-display-controls select {
+	max-width: 12em;
+	min-width: 0;
+}
+.mtg-decklist-body.mtg-decklist-gallery-mode {
+	grid-template-columns: 1fr;
+	gap: 0;
+}
+.mtg-decklist-gallery-mode .mtg-section-gallery,
+.mtg-catalog-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 125px), 1fr));
+	gap: 0.7em;
+	margin: 0.5em 0 1.1em;
+}
+.mtg-gallery-tile {
+	min-width: 0;
+	position: relative;
+	text-align: center;
+}
+.mtg-gallery-art {
+	position: relative;
+	border: 0;
+	padding: 0;
+	background: transparent;
+	color: var(--text-muted);
+	border-radius: 5%;
+	width: 100%;
+	min-height: 7em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: zoom-in;
+}
+.mtg-gallery-art img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 63 / 88;
+	object-fit: contain;
+	border-radius: 5%;
+	display: block;
+}
+.mtg-gallery-art:hover img { filter: brightness(1.06); }
+.mtg-gallery-placeholder {
+	border: 1px dashed var(--background-modifier-border);
+	border-radius: 5%;
+	padding: 1em 0.3em;
+	font-size: 0.85em;
+}
+.mtg-gallery-quantity {
+	position: absolute;
+	right: 0.2em;
+	top: 0.2em;
+	font-weight: 700;
+	font-size: 0.85em;
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	padding: 0.15em 0.35em;
+}
+.mtg-gallery-caption {
+	font-size: 0.8em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-weight: 600;
+}
+.mtg-gallery-subtitle {
+	font-size: 0.75em;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.mtg-catalog-heading {
+	font-size: 1.15em;
+	font-weight: 650;
+	margin-bottom: 0.6em;
+}
+.mtg-catalog-filters {
+	display: flex;
+	flex-direction: column;
+	gap: 0.65em;
+	margin-bottom: 0.8em;
+}
+.mtg-catalog-input-row,
+.mtg-catalog-filter-row {
+	display: flex;
+	gap: 0.5em;
+	flex-wrap: wrap;
+}
+.mtg-catalog-input { flex: 1; min-width: 12em; }
+.mtg-catalog-colors {
+	display: flex;
+	gap: 0.5em;
+	align-items: center;
+	flex-wrap: wrap;
+	font-size: 0.85em;
+}
+.mtg-catalog-color {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.15em;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.mtg-catalog-actions {
+	justify-content: space-between;
+}
+.mtg-catalog-status {
+	color: var(--text-muted);
+	font-size: 0.85em;
+	margin: 0.35em 0;
+}
+.mtg-catalog-set-choices {
+	max-height: 14em;
+	overflow-y: auto;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25em;
+}
+.mtg-catalog-set-choices.is-hidden { display: none; }
+.mtg-catalog-set-choices button { font-size: 0.8em; }
+.mtg-catalog-error { color: var(--text-error); font-size: 0.8em; margin-bottom: 0.4em; }
+.mtg-catalog-group-title {
+	font-size: 0.9em;
+	font-weight: 600;
+	margin: 0.8em 0 0.3em;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.mtg-catalog-copy {
+	font-size: 0.75em;
+	margin: 0.25em auto;
+	display: block;
+}
+.mtg-catalog-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1em;
+}
+.mtg-catalog-list .mtg-catalog-slot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	border-bottom: 1px solid var(--background-modifier-border);
+	gap: 0.4em;
+}
+.mtg-catalog-list .mtg-catalog-copy { margin: 0; }
+.mtg-catalog-row { display: flex; flex: 1; justify-content: space-between; gap: 0.5em; align-items: center; }
+.mtg-catalog-card-link {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	text-align: left;
+	padding: 0.1em;
+	color: var(--text-accent);
+}
+.mtg-catalog-card-set { color: var(--text-muted); font-size: 0.8em; }
+.mtg-catalog-more { margin-top: 0.7em; width: 100%; }
+.mtg-template-description { font-size: 0.75em; color: var(--text-muted); }
+
 :root {
 	--mtg-w: #f8e7b9;
 	--mtg-u: #aedbf2;

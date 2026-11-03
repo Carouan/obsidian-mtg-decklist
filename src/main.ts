@@ -20,6 +20,8 @@ import type { CachedArchidektDeck } from "./archidekt/types";
 import { extractArchidektId } from "./archidekt/url";
 import { DeckExportModal } from "./ui/deck-export-modal";
 import { t } from "./utils/i18n";
+import { createCatalogProcessor } from "./renderer/catalog-renderer";
+import { MtgQuickTemplates } from "./editor/quick-templates";
 
 interface PersistedData {
 	settings: MtgDecklistSettings;
@@ -50,6 +52,9 @@ export default class MtgDecklistPlugin extends Plugin {
 
 		this.registerMarkdownCodeBlockProcessor(DECKLIST_BLOCK_LANG, createDecklistProcessor(this));
 		this.registerMarkdownCodeBlockProcessor(COMBO_BLOCK_LANG, createComboProcessor(this));
+		this.registerMarkdownCodeBlockProcessor("cardlist", createCatalogProcessor(this, "cardlist"));
+		this.registerMarkdownCodeBlockProcessor("extension", createCatalogProcessor(this, "extension"));
+		this.registerEditorSuggest(new MtgQuickTemplates(this));
 		registerInlineProcessor(this);
 		this.registerEditorExtension(createInlineEditorExtension(this));
 

@@ -10,15 +10,111 @@ import {
 } from "../utils/constants";
 import { CardCache, normalizeCardName, printingKey } from "./cache";
 import { bestLocalizedPrint, localizedPrintingKey } from "./localization";
-import type { ScryfallCard } from "./types";
+import type { ScryfallCard, ScryfallCardPage, ScryfallSet } from "./types";
 import type { CardLanguage } from "../settings";
 
 export class ScryfallClient {
 	private queue: Promise<unknown> = Promise.resolve();
 	private inflight: Map<string, Promise<ScryfallCard | null>> = new Map();
 	private lastRequestAt = 0;
+	// Bounded, in-memory catalog cache. Never persisted to Obsidian's data.json.
+	private catalog = new Map<string, { expires: number; data: unknown }>();
+	private catalogInflight = new Map<string, Promise<unknown>>();
 
 	constructor(private readonly cache: CardCache) {}
+
+	/** Get a single page only; callers must opt in to loading more results. */
+	async searchCatalog(
+		query: string,
+		options: { unique?: "cards" | "prints"; order?: "set" | "name" | "color" | "cmc" | "released"; nextPage?: string } = {},
+	): Promise<ScryfallCardPage | null> {
+		const url = options.nextPage
+			? validateCatalogUrl(options.nextPage)
+			: `${SCRYFALL_CARDS_BASE}/search?q=${encodeURIComponent(query)}&unique=${options.unique ?? "prints"}&order=${options.order ?? "set"}`;
+		const data = await this.requestCatalog<ScryfallCardPage>(url);
+		if (!data || !Array.isArray(data.data)) return null;
+		return { ...data, has_more: Boolean(data.has_more) };
+	}
+
+	async listSets(): Promise<ScryfallSet[]> {
+		const data = await this.requestCatalog<{ data: ScryfallSet[] }>("https://api.scryfall.com/sets");
+		return Array.isArray(data?.data) ? data.data : [];
+	}
+
+	async findSet(nameOrCode: string): Promise<ScryfallSet | null> {
+		const normalized = nameOrCode.trim().toLowerCase();
+		if (!normalized || normalized.length > 80) return null;
+		// Scryfall /sets/:code only accepts set codes, not names.
+		if (/^[a-z0-9]{2,6}$/.test(normalized)) {
+			const found = await this.requestCatalog<ScryfallSet>(`https://api.scryfall.com/sets/${normalized}`);
+			if (found?.code) return found;
+		}
+		const sets = await this.listSets();
+		return sets.find((set) => set.code.toLowerCase() === normalized)
+			?? sets.find((set) => set.name.toLowerCase() === normalized)
+			?? null;
+	}
+
+	/** Exact set/language image; deliberately DOES NOT substitute a different set. */
+	async exactLocalizedPrinting(card: ScryfallCard, language: CardLanguage): Promise<ScryfallCard | null> {
+		if (language === "en" || !card.set || !card.collector_number) return null;
+		const url = `${SCRYFALL_CARDS_BASE}/${encodeURIComponent(card.set)}/${encodeURIComponent(card.collector_number)}/${language}`;
+		const candidate = await this.requestCatalog<ScryfallCard>(url);
+		return candidate?.lang === language && candidate.set === card.set && candidate.collector_number === card.collector_number ? candidate : null;
+	}
+
+	private async requestCatalog<T>(url: string): Promise<T | null> {
+		validateCatalogUrl(url);
+		const cached = this.catalog.get(url);
+		if (cached && cached.expires > Date.now()) return cached.data as T;
+		const inflight = this.catalogInflight.get(url);
+		if (inflight) return inflight as Promise<T | null>;
+		const request = this.enqueue(() => this.doCatalogRequest<T>(url));
+		this.catalogInflight.set(url, request);
+		try {
+			const data = await request;
+			if (data) this.rememberCatalog(url, data);
+			return data;
+		} finally {
+			this.catalogInflight.delete(url);
+		}
+	}
+
+	private rememberCatalog(url: string, data: unknown): void {
+		this.catalog.delete(url);
+		this.catalog.set(url, { data, expires: Date.now() + 10 * 60_000 });
+		while (this.catalog.size > 64) {
+			const oldest = this.catalog.keys().next();
+			if (oldest.done) break;
+			this.catalog.delete(oldest.value);
+		}
+	}
+
+	private async doCatalogRequest<T>(url: string, attempt = 0): Promise<T | null> {
+		try {
+			const response = await requestUrl({
+				url, method: "GET",
+				headers: { Accept: "application/json", "User-Agent": PLUGIN_USER_AGENT },
+				throw: false,
+			});
+			if (response.status === 404) {
+				// Negative cache avoids repeated requests for printings that do not
+				// exist in the selected language during scrolling or rerendering.
+				this.rememberCatalog(url, null);
+				return null;
+			}
+			if (isThrottleStatus(response.status) && attempt < SCRYFALL_RETRY_MAX_ATTEMPTS) {
+				await sleep(Math.max(parseRetryAfterMs(response.headers) ?? 0, backoffDelay(attempt)));
+				this.lastRequestAt = Date.now();
+				return this.doCatalogRequest<T>(url, attempt + 1);
+			}
+			if (response.status < 200 || response.status >= 300) return null;
+			return response.json as T;
+		} catch (err) {
+			console.warn("[mtg-decklist] Scryfall catalog request failed", err);
+			return null;
+		}
+	}
 
 	getCached(name: string): ScryfallCard | undefined {
 		return this.cache.get(name);
@@ -214,7 +310,10 @@ export class ScryfallClient {
 			if (!card || !card.name) return null;
 
 			this.cache.set(name, card);
-			this.cache.set(card.name, card);
+				// Scryfall also accepts localized printed names (e.g. "Foudre").
+				// Never let a French response shadow the English Oracle-name cache:
+				// an English deck must still show the English printing by default.
+				if (!card.lang || card.lang === "en") this.cache.set(card.name, card);
 			return card;
 		} catch (err) {
 			console.warn("[mtg-decklist] Scryfall request failed", name, err);
@@ -278,6 +377,16 @@ export class ScryfallClient {
 			return null;
 		}
 	}
+}
+
+/** Scryfall controls next_page. Never follow an untrusted cross-origin URL. */
+export function validateCatalogUrl(value: string): string {
+	const url = new URL(value);
+	if (
+		url.origin !== "https://api.scryfall.com" ||
+		!/^\/(?:cards\/search|cards\/[a-z0-9]{2,6}\/[0-9a-z★]+\/[a-z]{2,3}|sets(?:\/[a-z0-9]{2,6})?)$/.test(url.pathname)
+	) throw new Error("Invalid Scryfall catalog URL");
+	return url.toString();
 }
 
 function isThrottleStatus(status: number): boolean {

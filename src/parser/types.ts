@@ -51,6 +51,7 @@ export interface DecklistDirectives {
 	sort?: "name" | "cmc-name" | "source";
 	legality?: DecklistLegalityFormat;
 	language?: CardLanguage;
+	view?: "list" | "gallery";
 }
 
 export interface RemoteSource {

@@ -14,6 +14,8 @@ import { localizedDisplayName, localizedPrintingKey } from "../scryfall/localiza
 import type { ScryfallCard } from "../scryfall/types";
 import type { CardLanguage, LegalityFormat } from "../settings";
 import { t as translateUi, translatedError, translatedSection } from "../utils/i18n";
+import { renderGalleryCard } from "./card-gallery";
+import type { CardSortOrder } from "../settings";
 
 const COLOR_ORDER = ["W", "U", "B", "R", "G"];
 
@@ -31,6 +33,7 @@ export interface RenderDeckOptions {
 	remoteSource?: RemoteSource;
 	deckName?: string;
 	onRefresh?: () => void;
+	ui?: { sort?: CardSortOrder; view?: "list" | "gallery" };
 }
 
 function collectMainDeckCards(sections: ResolvedSection[]): ScryfallCard[] {
@@ -77,7 +80,8 @@ export function renderDeckView(
 	};
 
 	const groupingMode = parsed.directives.group ?? plugin.settings.groupingMode;
-	const sortOrder = parsed.directives.sort ?? plugin.settings.cardSortOrder;
+	const sortOrder = options.ui?.sort ?? parsed.directives.sort ?? plugin.settings.cardSortOrder;
+	const view = options.ui?.view ?? parsed.directives.view ?? "list";
 	const legalityFormat: LegalityFormat = parsed.directives.legality ?? plugin.settings.legalityFormat;
 	const sections = buildResolvedSections(parsed, groupingMode, sortOrder, lookup);
 	const commanderCards = collectCommanderCards(sections);
@@ -105,14 +109,15 @@ export function renderDeckView(
 	}
 
 	const commanderNames = collectCommanderNames(sections, plugin, cardLanguage);
-	renderHeader(container, parsed, plugin, deckColorIdentity, isCommanderDeck, commanderNames, options, cardLanguage);
+	renderHeader(container, parsed, plugin, deckColorIdentity, isCommanderDeck, commanderNames, options, cardLanguage, sortOrder, view);
 
 	const body = container.createDiv({ cls: "mtg-decklist-body" });
+	if (view === "gallery") body.addClass("mtg-decklist-gallery-mode");
 	const splitAt = Math.ceil(sections.length / 2);
 	const col1 = body.createDiv({ cls: "mtg-decklist-column" });
 	const col2 = body.createDiv({ cls: "mtg-decklist-column" });
 	sections.forEach((section, i) => {
-		renderSection(i < splitAt ? col1 : col2, section, plugin, violations, isCommanderDeck, legalityFormat, cardLanguage);
+		renderSection(i < splitAt ? col1 : col2, section, plugin, violations, isCommanderDeck, legalityFormat, cardLanguage, view);
 	});
 
 	if (plugin.settings.showStats) {
@@ -134,6 +139,8 @@ function renderHeader(
 	commanderNames: string[],
 	options: RenderDeckOptions,
 	language: CardLanguage,
+	sort: CardSortOrder,
+	view: "list" | "gallery",
 ): void {
 	const header = container.createDiv({ cls: "mtg-decklist-header" });
 
@@ -162,6 +169,28 @@ function renderHeader(
 	ciLabel.setText(formatColorIdentityLabel(deckColorIdentity, isCommanderDeck, language));
 
 	row.createSpan({ cls: "mtg-decklist-total", text: translateUi(language, "{count} cards", { count: parsed.totalCards }) });
+	const toolbar = header.createDiv({ cls: "mtg-decklist-toolbar" });
+	const sortEl = toolbar.createEl("select", { cls: "dropdown mtg-decklist-sort", attr: { "aria-label": translateUi(language, "Sort cards") } });
+	for (const [key, label] of [
+		["name", translateUi(language, "Name (alphabetical)")],
+		["cmc-name", translateUi(language, "Mana value, then name")],
+		["source", translateUi(language, "Source (as typed)")],
+	] as const) {
+		sortEl.createEl("option", { text: label, value: key });
+	}
+	sortEl.value = sort;
+	sortEl.addEventListener("change", () => {
+		(options.ui ??= {}).sort = sortEl.value as CardSortOrder;
+		renderDeckView(parsed, container, plugin, options);
+	});
+	const viewEl = toolbar.createEl("select", { cls: "dropdown mtg-decklist-view", attr: { "aria-label": translateUi(language, "Display mode") } });
+	viewEl.createEl("option", { text: translateUi(language, "List"), value: "list" });
+	viewEl.createEl("option", { text: translateUi(language, "Gallery"), value: "gallery" });
+	viewEl.value = view;
+	viewEl.addEventListener("change", () => {
+		(options.ui ??= {}).view = viewEl.value as "list" | "gallery";
+		renderDeckView(parsed, container, plugin, options);
+	});
 }
 
 function renderRemoteControls(parent: HTMLElement, options: RenderDeckOptions, language: CardLanguage): void {
@@ -265,6 +294,7 @@ function renderSection(
 	isCommanderDeck: boolean,
 	legalityFormat: LegalityFormat,
 	language: CardLanguage,
+	view: "list" | "gallery",
 ): void {
 	const sectionEl = parent.createDiv({ cls: `mtg-section mtg-section-${section.kind}` });
 	if (isLandSection(section)) sectionEl.addClass("mtg-section-lands");
@@ -278,8 +308,15 @@ function renderSection(
 	headerEl.createSpan({ cls: "mtg-section-title", text: translatedSection(language, section.title, section.kind) });
 	headerEl.createSpan({ cls: "mtg-section-count", text: `${sectionEntryCount(section)}` });
 
-	const list = sectionEl.createDiv({ cls: "mtg-section-list" });
+	const list = sectionEl.createDiv({ cls: view === "gallery" ? "mtg-section-gallery" : "mtg-section-list" });
 	for (const resolved of section.entries) {
+		if (view === "gallery") {
+			const card = resolved.card
+				? plugin.client.getLocalizedCard(resolved.card, language, Boolean(resolved.entry.set)) ?? resolved.card
+				: null;
+			renderGalleryCard(list, card, plugin, language, { name: resolved.entry.name, quantity: resolved.entry.quantity });
+			continue;
+		}
 		renderCardRow(list, resolved, {
 			preview: plugin.preview,
 				uiLanguage: language,

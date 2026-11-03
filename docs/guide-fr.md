@@ -83,4 +83,44 @@ Le code `(M10) 146` fixe l'édition et le numéro de collection. Le plugin reche
 
 Vérifier **Langue des cartes et de l'interface = Français**, puis rouvrir la note. Les cartes dont Scryfall ne fournit pas d'impression française, les textes personnels saisis dans la note et certains noms propres restent volontairement inchangés. Les exports vers Moxfield et Arena conservent les identifiants et noms anglais nécessaires à leur compatibilité.
 
+## Vues dynamiques : galerie, tri et explorateur d'extensions
+
+Chaque rendu `decklist` possède désormais deux menus dans son en-tête : **tri par nom / mana / ordre source** et **affichage en liste / galerie**. Le choix n'écrit rien dans le Markdown. Pour ouvrir directement en galerie, ajouter `view: gallery` au début d'un bloc `decklist`.
+
+Le bloc `extension` permet de chercher les cartes d'une extension sans les charger toutes à l'ouverture de la note :
+
+````markdown
+```extension
+language: fr
+set: mir
+color: red
+type: creature
+view: gallery
+sortby: color
+```
+````
+
+- **Avant le chargement**, choisir les couleurs (plusieurs possibles), le type et la rareté. Cliquer sur **Afficher les cartes** : les filtres sont envoyés directement à Scryfall.
+- **Après le chargement**, passer de la liste à la galerie, réorganiser les cartes, afficher les suivantes par groupes. Les images ne sont chargées qu'au moment de leur affichage à l'écran.
+- Le bouton **Rechercher une extension** propose des noms et codes d'extension. Mirage utilise le code **MIR**.
+- L'option **Copier la référence** fournit une ligne utilisable dans un deck, au format `1 Card Name (SET) numéro`.
+- En français, le visuel exact de l'édition est demandé à Scryfall ; s'il n'existe pas en français, son visuel anglais est conservé pour ne pas confondre les extensions.
+
+Pour retrouver les éditions d'une carte :
+
+````markdown
+```cardlist
+language: fr
+card: Foudre
+unique: set
+view: gallery
+```
+````
+
+`unique: set` affiche une impression représentative par extension. `unique: prints` conserve les variantes d'impression. Le bouton **Charger la page suivante** évite de télécharger toutes les éditions d'un coup. Les données de recherche sont conservées temporairement en mémoire (pas comme images PNG dans le coffre).
+
+## Raccourcis de modèles intégrés
+
+Sur une ligne vide dans l'éditeur, taper `deck-cmd-fr`, `deck-cmd-auto-fr`, `deck-60-fr`, `deck-vintage-en`, `foudre-ext` ou `ext-mirage`, puis sélectionner la suggestion proposée avec Entrée ou un clic. Le raccourci est alors remplacé par le bloc Markdown correspondant. **Aucun module Templater n'est nécessaire.** Le texte n'est jamais remplacé automatiquement sans validation.
+
 Pour signaler un problème, joindre le bloc `decklist` concerné (sans données privées), la version du plugin et, si possible, une capture d'écran dans une [issue GitHub](https://github.com/Ekrizdis367/obsidian-mtg-decklist/issues).
