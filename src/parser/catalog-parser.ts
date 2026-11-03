@@ -111,7 +111,10 @@ export function buildExtensionQuery(code: string, options: Pick<CatalogOptions, 
 	if (!/^[a-z0-9]{2,6}$/i.test(code)) throw new Error("Invalid Scryfall set code");
 	const clauses = [`set:${code.toLowerCase()}`];
 	if (options.colors.length) {
-		const colors = options.colors.map((c) => `c:${c}`);
+		// Scryfall 'c:r' means *contains* red, including multicolor cards.
+		// Use exact color identities for mono-colors, with multicolor (m)
+		// as its own explicit choice. OR provides an inclusive multi-select.
+		const colors = options.colors.map((c) => `c=${c}`);
 		clauses.push(colors.length > 1 ? `(${colors.join(" or ")})` : colors[0]!);
 	}
 	if (options.type !== "any") {

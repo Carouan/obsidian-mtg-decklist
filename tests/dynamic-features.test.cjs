@@ -18,6 +18,9 @@ async function loadTypeScript(relativePath) {
 						"export const requestUrl = (options) => globalThis.__testScryfallRequest(options);",
 						"export const Platform = { isMobile: false, isMobileApp: false };",
 						"export class EditorSuggest { constructor() {} setInstructions() {} }",
+						"export class MarkdownRenderChild { constructor() {} }",
+						"export class Notice { constructor() {} }",
+						"export const setIcon = () => {};",
 					].join("\n"),
 					loader: "js",
 				}));
@@ -44,7 +47,9 @@ test("extension config supports colors, type, rarity and gallery without loading
 	assert.equal(cfg.rarity, "rare");
 	assert.equal(cfg.sort, "mana");
 	assert.equal(cfg.view, "gallery");
-	assert.equal(buildExtensionQuery("mir", cfg), "set:mir (c:r or c:u) t:creature r:rare");
+	assert.equal(buildExtensionQuery("mir", cfg), "set:mir (c=r or c=u) t:creature r:rare");
+	assert.equal(buildExtensionQuery("mir", { colors: ["r"], type: "instant", rarity: "any" }), "set:mir c=r t:instant");
+	assert.equal(buildExtensionQuery("mir", { colors: ["r", "m"], type: "any", rarity: "any" }), "set:mir (c=r or c=m)");
 	assert.throws(() => buildExtensionQuery("mir or c:m", cfg), /Invalid Scryfall set code/);
 });
 
@@ -160,4 +165,35 @@ test("catalog fetches only one page, reuses memory cache and validates exact Fre
 	assert.equal(calls.length, 2);
 	await client.searchCatalog("set:mir c:r", { nextPage: page.next_page });
 	assert.equal(calls.length, 3, "next page requires an explicit request");
+});
+
+test("catalog ignores untranslated French placeholder artwork and keeps the English printing", async () => {
+	const { ScryfallClient } = await loadTypeScript("src/scryfall/client.ts");
+	globalThis.window = { setTimeout };
+	let hits = 0;
+	globalThis.__testScryfallRequest = async () => {
+		hits++;
+		return { status: 200, json: {
+			id: "placeholder-fr", lang: "fr", set: "mir", collector_number: "158",
+			image_status: "placeholder", printed_name: "Fureur aveugle",
+			image_uris: { normal: "placeholder.jpg" },
+		}, headers: {} };
+	};
+	const client = new ScryfallClient({});
+	const card = { id: "en-158", name: "Blind Fury", set: "mir", collector_number: "158", image_uris: { normal: "english.jpg" } };
+	assert.equal(await client.exactLocalizedPrinting(card, "fr"), null);
+	assert.equal(await client.exactLocalizedPrinting(card, "fr"), null);
+	assert.equal(hits, 1, "cached placeholder should not trigger another API call");
+});
+
+test("editions mode keeps one representative per set without losing variants mode", async () => {
+	const { uniqueCatalogCards } = await loadTypeScript("src/renderer/catalog-renderer.ts");
+	const cards = [
+		{ id: "a", set: "m10" },
+		{ id: "b", set: "m10" },
+		{ id: "c", set: "mir" },
+	];
+	assert.deepEqual(uniqueCatalogCards(cards, "cardlist", "set").map((c) => c.id), ["a", "c"]);
+	assert.equal(uniqueCatalogCards(cards, "cardlist", "prints").length, 3);
+	assert.equal(uniqueCatalogCards(cards, "extension", "set").length, 3);
 });

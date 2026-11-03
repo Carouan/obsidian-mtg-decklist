@@ -270,7 +270,7 @@ view: gallery
 ```
 ````
 
-**Explore a set.** A new `extension` block renders a search panel **without downloading a complete set on note load**. Change the color checkboxes, card type and rarity, then click *Show cards*. The Scryfall search is filtered server-side before results are returned, with a **24-card initial display**, lazy thumbnail loading, and a *Show more / Load next page* button. Use the lookup button to find a set by name or code.
+**Explore a set.** A new `extension` block renders a search panel **without downloading a complete set on note load**. Change the mana-symbol color checkboxes, card type and rarity, then click *Show cards*. The Scryfall search is filtered server-side before results are returned, with **24 cards per visible page**, lazy thumbnail loading, and **Previous page / Next page** controls at both the top and bottom. Additional Scryfall pages are downloaded only if needed. Use the lookup button to find a set by name or code.
 
 ````markdown
 ```extension
@@ -284,7 +284,7 @@ sortby: color
 ```
 ````
 
-Set codes use Scryfall's system: **Mirage = `mir`**. The available color checkboxes and type/rarity selectors are only **initial defaults**; changes in the UI take effect when *Show cards* is clicked. The sort and list/gallery selectors act on cards already loaded. Color filters are inclusive (*red or blue*); selecting several colors does not require cards to contain all those colors.
+Set codes use Scryfall's system: **Mirage = `mir`**. The color icons and type/rarity selectors are only **initial defaults**; changes in the UI take effect when *Show cards* is clicked. The sort and list/gallery selectors act on cards already loaded. A selected **red** pip matches **monored** cards only (Scryfall `c=r`), not red multicolored cards. Select **Multicolor** separately to include multicolored cards; multiple selected colors combine with OR.
 
 **Find a card's printings.** A new `cardlist` block retrieves printings by the card's Oracle identity. French printed names such as `Foudre` can be used in the card lookup. `unique: set` shows one representative printing per expansion; `unique: prints` shows every available printing.
 
@@ -298,7 +298,7 @@ sort: set
 ```
 ````
 
-Catalog galleries show set names and collector numbers, and a **Copy printing** control provides a line such as `1 Lightning Bolt (M10) 146` for reuse in a decklist. Images are fetched lazily and the French image is requested for the **same set and collector number** where available; otherwise the exact English edition remains visible. Catalog search data uses a bounded **in-memory** cache rather than growing the Obsidian `data.json` file. Image files remain on Scryfall's CDN.
+Catalog galleries show set names and collector numbers. Each card has its own **copy icon** (top-left corner) to copy a line such as `1 Lightning Bolt (M10) 146` for reuse in a decklist; list mode keeps a separate text button. Images are fetched lazily and the French image is requested for the **same set and collector number** where a scan exists; if Scryfall only returns an *image placeholder*, the exact English edition remains visible. The page indicator is exact for ordinary extension/printing searches; `cardlist` with `unique: set` shows a page number without claiming the final number of distinct sets until all printings are fetched. Catalog search data uses a bounded **in-memory** cache rather than growing the Obsidian `data.json` file. Image files remain on Scryfall's CDN.
 
 **Template shortcuts.** On a line of its own in the Obsidian editor, type one of the following, then *select* the displayed suggestion to expand it:
 

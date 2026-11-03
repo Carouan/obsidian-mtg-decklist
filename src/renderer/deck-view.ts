@@ -33,7 +33,7 @@ export interface RenderDeckOptions {
 	remoteSource?: RemoteSource;
 	deckName?: string;
 	onRefresh?: () => void;
-	ui?: { sort?: CardSortOrder; view?: "list" | "gallery" };
+	ui?: { sort?: CardSortOrder; view?: "list" | "gallery"; collapsed?: Record<string, boolean> };
 }
 
 function collectMainDeckCards(sections: ResolvedSection[]): ScryfallCard[] {
@@ -113,11 +113,13 @@ export function renderDeckView(
 
 	const body = container.createDiv({ cls: "mtg-decklist-body" });
 	if (view === "gallery") body.addClass("mtg-decklist-gallery-mode");
-	const splitAt = Math.ceil(sections.length / 2);
+	// In gallery mode the sections must share one flow; splitting them across
+	// two columns causes section headers/carets to overlap neighboring images.
+	const splitAt = view === "gallery" ? sections.length : Math.ceil(sections.length / 2);
 	const col1 = body.createDiv({ cls: "mtg-decklist-column" });
 	const col2 = body.createDiv({ cls: "mtg-decklist-column" });
 	sections.forEach((section, i) => {
-		renderSection(i < splitAt ? col1 : col2, section, plugin, violations, isCommanderDeck, legalityFormat, cardLanguage, view);
+		renderSection(i < splitAt ? col1 : col2, section, plugin, violations, isCommanderDeck, legalityFormat, cardLanguage, view, options);
 	});
 
 	if (plugin.settings.showStats) {
@@ -295,15 +297,20 @@ function renderSection(
 	legalityFormat: LegalityFormat,
 	language: CardLanguage,
 	view: "list" | "gallery",
+	options: RenderDeckOptions,
 ): void {
 	const sectionEl = parent.createDiv({ cls: `mtg-section mtg-section-${section.kind}` });
 	if (isLandSection(section)) sectionEl.addClass("mtg-section-lands");
 
-	const startCollapsed =
-		(section.kind === "sideboard" || section.kind === "maybeboard") && plugin.settings.collapseSideboardByDefault;
+	const sectionKey = `${section.kind}:${section.title}`;
+	const startCollapsed = options.ui?.collapsed?.[sectionKey]
+		?? ((section.kind === "sideboard" || section.kind === "maybeboard") && plugin.settings.collapseSideboardByDefault);
 	if (startCollapsed) sectionEl.addClass("is-collapsed");
 
-	const headerEl = sectionEl.createDiv({ cls: "mtg-section-header" });
+	const headerEl = sectionEl.createEl("button", {
+		cls: "mtg-section-header",
+		attr: { type: "button", "aria-expanded": String(!startCollapsed) },
+	});
 	const caret = headerEl.createSpan({ cls: "mtg-section-caret", text: "\u25BE" });
 	headerEl.createSpan({ cls: "mtg-section-title", text: translatedSection(language, section.title, section.kind) });
 	headerEl.createSpan({ cls: "mtg-section-count", text: `${sectionEntryCount(section)}` });
@@ -319,7 +326,7 @@ function renderSection(
 		}
 		renderCardRow(list, resolved, {
 			preview: plugin.preview,
-				uiLanguage: language,
+			uiLanguage: language,
 			localizedCard: resolved.card
 				? plugin.client.getLocalizedCard(resolved.card, language, Boolean(resolved.entry.set))
 				: undefined,
@@ -334,9 +341,14 @@ function renderSection(
 		});
 	}
 
-	headerEl.addEventListener("click", () => {
-		sectionEl.toggleClass("is-collapsed", !sectionEl.hasClass("is-collapsed"));
-		caret.setText(sectionEl.hasClass("is-collapsed") ? "\u25B8" : "\u25BE");
+	headerEl.addEventListener("click", (event) => {
+		event.preventDefault();
+		const collapsed = !sectionEl.hasClass("is-collapsed");
+		sectionEl.toggleClass("is-collapsed", collapsed);
+		(options.ui ??= {}).collapsed ??= {};
+		options.ui.collapsed[sectionKey] = collapsed;
+		headerEl.setAttribute("aria-expanded", String(!collapsed));
+		caret.setText(collapsed ? "\u25B8" : "\u25BE");
 	});
 	if (startCollapsed) caret.setText("\u25B8");
 }

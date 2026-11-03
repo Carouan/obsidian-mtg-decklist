@@ -10,6 +10,7 @@ import { t } from "../utils/i18n";
 import { renderGalleryCard } from "./card-gallery";
 import { classifyByType } from "./grouping";
 import { useTouchCardUi } from "../utils/touch-ui";
+import { renderColorIdentityPips } from "../ui/mana-symbols";
 
 const BATCH_SIZE = 24;
 const COLOR_ORDER = ["w", "u", "b", "r", "g", "m", "c"];
@@ -19,12 +20,23 @@ interface CatalogState {
 	cards: ScryfallCard[];
 	nextPage: string | undefined;
 	total: number;
-	visible: number;
+	page: number;
 	query: string;
 	set: ScryfallSet | null;
 	request: number;
 	loading: boolean;
 	observer: IntersectionObserver | null;
+}
+
+/** A set appears once in the editions browser, even when it has variants. */
+export function uniqueCatalogCards(cards: ScryfallCard[], kind: CatalogKind, unique: "set" | "prints"): ScryfallCard[] {
+	if (kind !== "cardlist" || unique === "prints") return cards;
+	const seen = new Set<string>();
+	return cards.filter((card) => {
+		if (!card.set || seen.has(card.set)) return false;
+		seen.add(card.set);
+		return true;
+	});
 }
 
 function displayName(card: ScryfallCard): string {
@@ -95,7 +107,7 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 	return (source: string, container: HTMLElement, _ctx: MarkdownPostProcessorContext): void => {
 		const options = parseCatalogBlock(source, kind, plugin.settings.cardLanguage);
 		const state: CatalogState = {
-			options, cards: [], nextPage: undefined, total: 0, visible: BATCH_SIZE,
+			options, cards: [], nextPage: undefined, total: 0, page: 0,
 			query: "", set: null, request: 0, loading: false, observer: null,
 		};
 		_ctx.addChild(new CatalogCleanup(container, () => {
@@ -148,15 +160,41 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 			});
 			const colorPanel = filters.createDiv({ cls: "mtg-catalog-colors" });
 			colorPanel.createSpan({ text: t(options.language, "Colors") });
+			const colorSymbols: Array<{ code: CatalogColor; el: HTMLElement }> = [];
 			for (const code of Object.keys(COLOR_LABELS) as CatalogColor[]) {
 				const label = colorPanel.createEl("label", { cls: "mtg-catalog-color" });
 				const check = label.createEl("input", { type: "checkbox" });
 				check.checked = options.colors.includes(code);
-				label.createSpan({ text: COLOR_LABELS[code] });
+				const labelName = t(options.language, code === "m" ? "Multicolor" : ({
+					w: "White", u: "Blue", b: "Black", r: "Red", g: "Green", c: "Colorless",
+				}[code] ?? "Multicolor"));
+				label.setAttribute("title", labelName);
+				const glyph = label.createSpan({ cls: "mtg-catalog-color-symbol" });
+				glyph.setAttribute("aria-label", labelName);
+				colorSymbols.push({ code, el: glyph });
+				check.setAttribute("aria-label", labelName);
 				check.addEventListener("change", () => {
 					options.colors = check.checked
 						? [...options.colors, code]
 						: options.colors.filter((color) => color !== code);
+				});
+			}
+			const renderSymbols = () => {
+				for (const { code, el } of colorSymbols) {
+					el.empty();
+					if (code === "m") {
+						el.createSpan({ cls: "mtg-catalog-multicolor-dot", attr: { "aria-hidden": "true" } });
+					} else {
+						renderColorIdentityPips(el, code === "c" ? [] : [code.toUpperCase()], plugin.symbology, {
+							sizeClass: "mtg-mana-symbol-sm", emptyAsColorless: code === "c",
+						});
+					}
+				}
+			};
+			renderSymbols();
+			if (!plugin.symbology.hasAny()) {
+				void plugin.ensureSymbologyLoaded().then((success) => {
+					if (success && container.isConnected) renderSymbols();
 				});
 			}
 			const selectors = filters.createDiv({ cls: "mtg-catalog-filter-row" });
@@ -179,10 +217,11 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 			[["color", t(options.language, "Color")], ["type", t(options.language, "Type")],
 				["mana", t(options.language, "Mana")], ["name", t(options.language, "Name")],
 				["set", t(options.language, "Set")]],
-			options.sort, (v) => { options.sort = v as CatalogSort; renderResults(); },
+			options.sort, (v) => { options.sort = v as CatalogSort; state.page = 0; renderResults(); },
 			t(options.language, "Sort cards"),
 		);
 		const status = container.createDiv({ cls: "mtg-catalog-status" });
+		const pagerTop = container.createDiv({ cls: "mtg-catalog-pager" });
 		const results = container.createDiv({ cls: "mtg-catalog-results" });
 
 		async function requestPage(next = false): Promise<void> {
@@ -195,9 +234,10 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 				if (!next) {
 					state.observer?.disconnect();
 					results.empty();
+					pagerTop.empty();
 					state.cards = [];
 					state.nextPage = undefined;
-					state.visible = BATCH_SIZE;
+					state.page = 0;
 					if (kind === "extension") {
 						const set = await plugin.client.findSet(options.set);
 						if (!set) throw new Error(t(options.language, "Set not found"));
@@ -213,21 +253,29 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 				}
 				const order = options.sort === "color" || options.sort === "mana" || options.sort === "name"
 					? (options.sort === "mana" ? "cmc" : options.sort) : "set";
-				const page: ScryfallCardPage | null = await plugin.client.searchCatalog(state.query, {
-					order, unique: "prints", nextPage: next ? state.nextPage : undefined,
-				});
-				if (request !== state.request || !container.isConnected) return;
-				if (!page || !page.data.length) {
-					if (next && state.cards.length) {
+				// Scryfall uses up to 175 results per API page. The interface uses
+				// 24 cards per visible page. Only fetch further API pages when the
+				// requested visible page needs them; cap requests per interaction.
+				const targetPage = next ? state.page + 1 : 0;
+				for (let batch = 0; batch < 3; batch++) {
+					const page: ScryfallCardPage | null = await plugin.client.searchCatalog(state.query, {
+						order, unique: "prints", nextPage: next || batch > 0 ? state.nextPage : undefined,
+					});
+					if (request !== state.request || !container.isConnected) return;
+					if (!page || !page.data.length) {
+						if (!state.cards.length) throw new Error(t(options.language, "No cards found"));
 						state.nextPage = undefined;
-						renderResults();
-						return;
+						break;
 					}
-					throw new Error(t(options.language, "No cards found"));
+					state.cards.push(...page.data);
+					state.nextPage = page.has_more ? page.next_page : undefined;
+					state.total = page.total_cards ?? state.cards.length;
+					if (uniqueCatalogCards(state.cards, kind, options.unique).length > targetPage * BATCH_SIZE || !state.nextPage) break;
 				}
-				state.cards.push(...page.data);
-				state.nextPage = page.has_more ? page.next_page : undefined;
-				state.total = page.total_cards ?? state.cards.length;
+				if (uniqueCatalogCards(state.cards, kind, options.unique).length > targetPage * BATCH_SIZE) {
+					state.page = targetPage;
+				}
+				state.loading = false;
 				renderResults();
 			} catch (err) {
 				if (request === state.request) status.setText(err instanceof Error ? err.message : String(err));
@@ -240,13 +288,42 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 			state.observer?.disconnect();
 			state.observer = null;
 			results.empty();
+			pagerTop.empty();
 			if (!state.cards.length) return;
-			const distinct = options.kind === "cardlist" && options.unique === "set"
-				? state.cards.filter((card, index, cards) => cards.findIndex((c) => c.set === card.set) === index)
-				: state.cards;
+			const distinct = uniqueCatalogCards(state.cards, kind, options.unique);
 			const sorted = sortedCards(distinct, options.sort);
-			const showing = sorted.slice(0, state.visible);
-			status.setText(t(options.language, "Showing {shown} of {total} cards", { shown: showing.length, total: state.total }));
+			const start = state.page * BATCH_SIZE;
+			const showing = sorted.slice(start, start + BATCH_SIZE);
+			status.setText(kind === "cardlist" && options.unique === "set"
+				? t(options.language, "{shown} sets found among {loaded} printings loaded", {
+					shown: distinct.length, loaded: state.cards.length,
+				})
+				: t(options.language, "Showing {start}–{end} of {total} cards", {
+					start: start + 1, end: start + showing.length, total: state.total,
+				}));
+			const hasNext = start + BATCH_SIZE < sorted.length || Boolean(state.nextPage);
+			function drawPager(parent: HTMLElement): void {
+				const previous = parent.createEl("button", { text: t(options.language, "Previous page"), attr: { type: "button" } });
+				previous.disabled = state.page === 0 || state.loading;
+				previous.addEventListener("click", () => { state.page--; renderResults(); });
+				const pageTotal = kind === "cardlist" && options.unique === "set"
+					? ""
+					: ` / ${Math.ceil(state.total / BATCH_SIZE)}`;
+				parent.createSpan({ cls: "mtg-catalog-page-label", text: t(options.language, "Page {number}", {
+					number: state.page + 1,
+				}) + pageTotal });
+				const forward = parent.createEl("button", { text: t(options.language, "Next page"), attr: { type: "button" } });
+				forward.disabled = !hasNext || state.loading;
+				forward.addEventListener("click", () => {
+					if (start + BATCH_SIZE < sorted.length) {
+						state.page++;
+						renderResults();
+					} else if (state.nextPage) {
+						void requestPage(true);
+					}
+				});
+			}
+			drawPager(pagerTop);
 			const buckets = new Map<string, ScryfallCard[]>();
 			for (const card of showing) {
 				const category = groupName(card, options.sort);
@@ -281,27 +358,24 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 					}
 				}
 			}
-			const canShowLocal = state.visible < sorted.length;
-			if (canShowLocal || state.nextPage) {
-				const more = results.createEl("button", {
-					cls: "mtg-catalog-more",
-					text: canShowLocal ? t(options.language, "Show more") : t(options.language, "Load next page"),
-				});
-				more.addEventListener("click", () => {
-					if (canShowLocal) { state.visible += BATCH_SIZE; renderResults(); }
-					else void requestPage(true);
-				});
-			}
+			const pagerBottom = results.createDiv({ cls: "mtg-catalog-pager mtg-catalog-pager-bottom" });
+			drawPager(pagerBottom);
 		}
 
 		function drawCard(slot: HTMLElement, card: ScryfallCard, canonical: ScryfallCard): void {
 			slot.empty();
 			const name = displayName(card);
 			const printing = `1 ${canonical.name} (${(canonical.set ?? "").toUpperCase()}) ${canonical.collector_number ?? ""}`;
+			const copyPrinting = () => {
+				void navigator.clipboard.writeText(printing).then(() => {
+					new Notice(t(options.language, "Printing copied"));
+				}).catch(() => new Notice(printing));
+			};
 			if (options.view === "gallery") {
 				renderGalleryCard(slot, card, plugin, options.language, {
 					name,
 					subtitle: `${canonical.set_name ?? canonical.set ?? ""} · ${canonical.collector_number ?? ""}`,
+					onCopy: copyPrinting,
 				});
 			} else {
 				const row = slot.createDiv({ cls: "mtg-catalog-row" });
@@ -313,16 +387,14 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 				}
 				row.createSpan({ cls: "mtg-catalog-card-set", text: `${canonical.set_name ?? canonical.set ?? ""} · ${canonical.collector_number ?? ""}` });
 			}
-			const copy = slot.createEl("button", {
-				cls: "mtg-catalog-copy",
-				text: t(options.language, "Copy printing"),
-				attr: { type: "button", "aria-label": t(options.language, "Copy printing") },
-			});
-			copy.addEventListener("click", () => {
-				void navigator.clipboard.writeText(printing).then(() => {
-					new Notice(t(options.language, "Printing copied"));
-				}).catch(() => new Notice(printing));
-			});
+			if (options.view === "list") {
+				const copy = slot.createEl("button", {
+					cls: "mtg-catalog-copy",
+					text: t(options.language, "Copy printing"),
+					attr: { type: "button", "aria-label": t(options.language, "Copy printing") },
+				});
+				copy.addEventListener("click", copyPrinting);
+			}
 		}
 
 		loadButton.addEventListener("click", () => { void requestPage(); });

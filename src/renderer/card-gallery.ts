@@ -3,6 +3,8 @@ import type { CardLanguage } from "../settings";
 import type { ScryfallCard } from "../scryfall/types";
 import { localizedDisplayName } from "../scryfall/localization";
 import { useTouchCardUi } from "../utils/touch-ui";
+import { setIcon } from "obsidian";
+import { t } from "../utils/i18n";
 
 /** Smallest useful card image. Higher resolution remains available in the preview. */
 export function galleryImageUrl(card: ScryfallCard): string | null {
@@ -15,7 +17,7 @@ export function renderGalleryCard(
 	card: ScryfallCard | null,
 	plugin: MtgDecklistPlugin,
 	language: CardLanguage,
-	options: { name: string; quantity?: number; subtitle?: string; onOpen?: () => void },
+	options: { name: string; quantity?: number; subtitle?: string; onOpen?: () => void; onCopy?: () => void },
 ): HTMLElement {
 	const tile = parent.createDiv({ cls: "mtg-gallery-tile" });
 	const display = card ?? undefined;
@@ -32,6 +34,20 @@ export function renderGalleryCard(
 	}
 	if (options.quantity && options.quantity > 1) {
 		art.createSpan({ cls: "mtg-gallery-quantity", text: `×${options.quantity}` });
+	}
+	if (options.onCopy) {
+		// The copy action belongs to each card, not the grid as a whole.
+		// Keep it visible on touch devices, where hover is unavailable.
+		const copy = tile.createEl("button", { cls: "mtg-gallery-copy", attr: {
+			type: "button", "aria-label": t(language, "Copy printing"), title: t(language, "Copy printing"),
+		} });
+		setIcon(copy, "copy");
+		copy.addEventListener("click", (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			plugin.preview.hide();
+			options.onCopy?.();
+		});
 	}
 	if (display) {
 		art.addEventListener("click", (event) => {

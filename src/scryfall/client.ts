@@ -60,7 +60,15 @@ export class ScryfallClient {
 		if (language === "en" || !card.set || !card.collector_number) return null;
 		const url = `${SCRYFALL_CARDS_BASE}/${encodeURIComponent(card.set)}/${encodeURIComponent(card.collector_number)}/${language}`;
 		const candidate = await this.requestCatalog<ScryfallCard>(url);
-		return candidate?.lang === language && candidate.set === card.set && candidate.collector_number === card.collector_number ? candidate : null;
+		// Scryfall can return a 'Localized Image Not Available' placeholder
+		// for an otherwise valid translated card. The exact English artwork
+		// is better than displaying that placeholder over every thumbnail.
+		return candidate?.lang === language &&
+			candidate.set === card.set &&
+			candidate.collector_number === card.collector_number &&
+			candidate.image_status !== "placeholder" &&
+			candidate.image_status !== "missing"
+			? candidate : null;
 	}
 
 	private async requestCatalog<T>(url: string): Promise<T | null> {
