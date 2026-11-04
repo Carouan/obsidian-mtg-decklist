@@ -1,0 +1,222 @@
+name: Android test vault (MTG Decklist)
+
+on:
+  push:
+    branches: [build/android-vault-20261104]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-vault:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install and build the plugin
+        run: |
+          npm ci
+          npm run build
+          npm test
+          npm run lint
+      - name: Assemble portable Android vault
+        shell: bash
+        run: |
+          set -euo pipefail
+          V="mtg-decklist-android-test"
+          mkdir -p "$V/.obsidian/plugins/mtg-decklist"
+          cp main.js manifest.json styles.css "$V/.obsidian/plugins/mtg-decklist/"
+          printf '["mtg-decklist"]\n' > "$V/.obsidian/community-plugins.json"
+          printf '{"settings":{"cardLanguage":"fr","catalogPageSize":24,"catalogColumns":4},"cache":{}}\n' > "$V/.obsidian/plugins/mtg-decklist/data.json"
+          cat > "$V/00 - LIRE EN PREMIER.md" <<'NOTE'
+          # MTG Decklist — coffre de test Android
+
+          Ce coffre est indépendant de vos notes personnelles. Il contient la version de développement du plugin compilée depuis le fork Carouan, la configuration et les exemples de test.
+
+          ## Installation
+          1. Téléchargez l'artefact ZIP de cette exécution GitHub Actions.
+          2. **Décompressez** le ZIP avec Mes fichiers (ou un gestionnaire de fichiers Android), sans perdre le dossier caché `.obsidian`.
+          3. Dans Obsidian Android, choisissez **Ouvrir un dossier comme coffre**, et sélectionnez le dossier extrait.
+          4. Si Obsidian demande votre accord, choisissez l'option permettant d'activer les plugins communautaires **pour ce coffre de test**. Vous pouvez aussi les activer depuis Paramètres > Modules complémentaires communautaires.
+          5. Ouvrez les notes 01 à 06. Le téléchargement des données de cartes et symboles nécessite Internet.
+
+          **Attention :** ce ZIP ne s'ouvre pas directement comme un coffre ; il faut l'extraire. Si Android refuse de choisir un dossier dans Téléchargements, déplacez le dossier extrait dans Documents/Obsidian ou un autre dossier accessible. Le plugin est expérimental : n'importez pas ce coffre sur votre vault principal.
+
+          Build : branche `feat/dynamic-decks-and-set-explorer` du fork GitHub, commit 0285b65.
+          NOTE
+          cat > "$V/01 - Deck dynamique.md" <<'NOTE'
+          # 01 — Deck dynamique (galerie et sections)
+
+          ```decklist
+          language: fr
+          group: auto
+          view: gallery
+          legality: off
+
+          # Deck principal
+          4 Lightning Bolt
+          4 Spark Elemental
+          4 Hellspark Elemental
+          4 Thermo-Alchemist
+          4 Brute Force
+          4 Fling
+          20 Mountain
+
+          # Réserve
+          2 Pyroclasm
+          2 Browbeat
+          ```
+
+          - [ ] Liste / galerie et tri
+          - [ ] Ouverture et fermeture des sections
+          - [ ] Images et prévisualisation au toucher
+          NOTE
+          cat > "$V/02 - Extensions et impressions.md" <<'NOTE'
+          # 02 — Mirage et impressions de Foudre
+
+          ## Mirage : créatures rouges
+
+          ```extension
+          language: fr
+          set: mir
+          color: red
+          type: creature
+          view: gallery
+          sortby: color
+          ```
+
+          ## Foudre : impressions
+
+          ```cardlist
+          language: fr
+          card: Foudre
+          unique: set
+          view: gallery
+          sort: set
+          ```
+
+          - [ ] Filtres par symboles de mana, type, rareté
+          - [ ] Pagination, copie individuelle des références
+          NOTE
+          cat > "$V/03 - Raccourcis.md" <<'NOTE'
+          # 03 — Raccourcis intégrés
+
+          Dans une ligne vide, saisissez `deck-cmd-fr`, `deck-60-fr`, `ext-mirage` ou `ext-index-fr`, puis acceptez la suggestion de l'éditeur.
+
+          ## Zone de test
+
+
+          NOTE
+          cat > "$V/04 - Galerie et pagination.md" <<'NOTE'
+          # 04 — Pagination et galerie
+
+          ```extension
+          language: fr
+          set: mir
+          view: gallery
+          sortby: name
+          ```
+
+          - [ ] Pas de chevauchement entre rangées
+          - [ ] Page suivante / précédente
+          - [ ] Symbole de copie sur chaque carte
+          - [ ] Les sections se replient sans décalage
+          NOTE
+          cat > "$V/05 - Terres natales.md" <<'NOTE'
+          # 05 — Noms français et catalogue
+
+          ```extension
+          language: fr
+          set: Terres natales
+          type: artifact
+          view: gallery
+          ```
+
+          - [ ] Le code HML est reconnu
+          - [ ] Les noms français sont affichés lorsqu'ils existent
+          - [ ] Les visuels anglais originaux remplacent les faux scans français
+          NOTE
+          cat > "$V/06 - Index des blocs et legalite.md" <<'NOTE'
+          # 06 — Index des blocs et légalité
+
+          ## Galerie compacte des blocs (trois de large si la place le permet)
+
+          ```extension-index
+          language: fr
+          view: gallery
+          group: block
+          sort: date-desc
+          ub: all
+          format: all
+          funny: false
+          digital: false
+          ```
+
+          ## Bloc Urza : trois extensions
+
+          ```extension-index
+          language: fr
+          view: gallery
+          group: block
+          sort: date-asc
+          search: Urza
+          ```
+
+          ## Vue tableau
+
+          ```extension-index
+          language: fr
+          view: table
+          group: none
+          sort: date-desc
+          ub: exclude
+          ```
+
+          ## Légalité Vintage
+
+          ```decklist
+          language: fr
+          group: auto
+          view: gallery
+          legality: vintage
+          # Deck principal
+          1 Black Lotus
+          1 Sol Ring
+          8 Island
+          ```
+
+          ## Légalité Commander
+
+          ```decklist
+          language: fr
+          group: auto
+          view: gallery
+          legality: commander
+          # Deck principal
+          1 Black Lotus
+          1 Sol Ring
+          8 Island
+          ```
+
+          - [ ] Trois panneaux de blocs sur un écran large, un seul sur téléphone
+          - [ ] Bloc Urza : USG, ULG, UDS, avec ses dates et ses trois symboles
+          - [ ] Universes Beyond, filtres de formats indicatifs, tris de dates
+          - [ ] Black Lotus restreint en Vintage, banni en Commander
+          NOTE
+          test -s "$V/.obsidian/plugins/mtg-decklist/main.js"
+          test -s "$V/.obsidian/plugins/mtg-decklist/styles.css"
+          test -s "$V/.obsidian/plugins/mtg-decklist/manifest.json"
+      - name: Publish Android-ready vault ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtg-decklist-android-test-20261104
+          path: mtg-decklist-android-test/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
