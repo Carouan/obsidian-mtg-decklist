@@ -22,6 +22,7 @@ import { DeckExportModal } from "./ui/deck-export-modal";
 import { t } from "./utils/i18n";
 import { createCatalogProcessor } from "./renderer/catalog-renderer";
 import { MtgQuickTemplates } from "./editor/quick-templates";
+import { createSetIndexProcessor } from "./renderer/set-index-renderer";
 
 interface PersistedData {
 	settings: MtgDecklistSettings;
@@ -54,6 +55,7 @@ export default class MtgDecklistPlugin extends Plugin {
 		this.registerMarkdownCodeBlockProcessor(COMBO_BLOCK_LANG, createComboProcessor(this));
 		this.registerMarkdownCodeBlockProcessor("cardlist", createCatalogProcessor(this, "cardlist"));
 		this.registerMarkdownCodeBlockProcessor("extension", createCatalogProcessor(this, "extension"));
+		this.registerMarkdownCodeBlockProcessor("extension-index", createSetIndexProcessor(this));
 		this.registerEditorSuggest(new MtgQuickTemplates(this));
 		registerInlineProcessor(this);
 		this.registerEditorExtension(createInlineEditorExtension(this));

@@ -256,6 +256,30 @@ Only **English and French are currently supported** for UI text and card preview
 
 ## Interactive decks, extensions and card printings
 
+**Visual set index.** The new `extension-index` block loads the Scryfall set catalog once (cached in memory), then lets you filter and sort it locally without repeatedly downloading card lists:
+
+````markdown
+```extension-index
+language: fr
+view: gallery
+group: block
+sort: date-desc
+ub: exclude
+format: all
+funny: false
+digital: false
+```
+````
+
+- **Views:** *Table* (compact, searchable and sortable) or *Gallery*. In gallery mode, **three compact block panels** fit across a sufficiently wide note, with **three small set tiles inside each block** (e.g. Urza's Saga, Urza's Legacy, Urza's Destiny). Narrow panes automatically use two, then one block column.
+- **Historic blocks** use Scryfall's `block_code` and `block`. Each block shows its name, earliest/latest release month, three-wide symbols and set codes. Products without a genuine historic block are displayed separately rather than inventing a block.
+- **Filters:** type/category, *Universes Beyond* (all / hide identified / only identified), include/exclude funny-acorn products, digital-only products, and *format-era hints*. Sort newest/oldest, by name, or by card count. The search also recognizes verified French set and block names.
+- **Format caveat:** Standard (~3 recent release years), Pioneer (2012+), Modern (2003+), Legacy/Vintage (paper), and Commander products are **approximate product filters, not rules of legality**. Standard rotation, reprints, bans, and special exceptions cannot be inferred from the age of a set. The actual status is always per card from Scryfall's current `legalities` field.
+- **Universes Beyond caveat:** the curated identification list in `src/data/set-overrides.json` is maintained separately because Scryfall's Set object has no reliable `universes_beyond` field. Hiding *identified* UB products is not a guarantee that no unclassified tie-in remains.
+- **Data model:** dates, card counts, English names, set codes and icon URLs come from the live Scryfall JSON. A small local JSON file adds selected UB classifications and French historical block names. Icons load lazily from Scryfall's SVG CDN. Clicking a set opens the existing `extension` explorer, with a back button.
+
+The plugin also shows reusable **legality badges** for banned, restricted, and not-legal cards in both list and gallery modes. For decklists use `legality: commander` (or another supported format); for a `cardlist` or `extension` use `format: modern` or select the format in its toolbar. A badge indicates a *specific card's status*, not the legal status of its whole set.
+
 **Deck controls.** Every rendered `decklist` now has two compact selectors in its header. The **Sort** selector changes between *Name*, *Mana value, then name* and *Source order*. The **Display** selector switches between *List* and *Gallery*. These controls change only the rendered view; they **do not rewrite the note**. Start in gallery mode using `view: gallery`:
 
 ````markdown
@@ -310,6 +334,7 @@ Catalog galleries show set names and collector numbers. Each card has its own **
 | `deck-vintage-en` | Vintage deck with English headings |
 | `foudre-ext` | `cardlist` for the printings of Foudre |
 | `ext-mirage` | `extension` set browser for Mirage |
+| `ext-index-fr` | Visual French `extension-index`, grouped by historic block |
 
 No text is replaced without accepting the suggestion. `group: manual` is used for templates with explicitly named sections; `legality:` takes a format name (not `on`/`off` together with a second `format:` directive). See also the [French guide](docs/guide-fr.md).
 

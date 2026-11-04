@@ -85,6 +85,10 @@ export interface ScryfallSet {
 	released_at?: string;
 	card_count?: number;
 	icon_svg_uri?: string;
+	block_code?: string;
+	block?: string;
+	parent_set_code?: string;
+	digital?: boolean;
 }
 
 export interface CachedCardEntry {

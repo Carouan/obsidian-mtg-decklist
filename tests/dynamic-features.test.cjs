@@ -80,6 +80,7 @@ test("suggestions expand templates explicitly and emit parseable decklists", asy
 	}
 	assert.equal(quickTemplateSuggestions("foudre-ext")[0].content.includes("card: foudre"), true);
 	assert.equal(quickTemplateSuggestions("ext-mirage")[0].content.includes("set: mirage"), true);
+	assert.equal(quickTemplateSuggestions("ext-index-fr")[0].content.includes("```extension-index"), true);
 	assert.deepEqual(quickTemplateSuggestions("ordinary paragraph"), []);
 });
 

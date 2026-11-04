@@ -14,6 +14,20 @@ const FENCE = "```";
 
 const STATIC_TEMPLATES: QuickTemplate[] = [
 	{
+		trigger: "ext-index-fr",
+		description: "Index des extensions · tableau et blocs visuels",
+		content: `${FENCE}extension-index
+language: fr
+view: gallery
+group: block
+sort: date-desc
+ub: all
+format: all
+funny: false
+digital: false
+${FENCE}`,
+	},
+	{
 		trigger: "deck-cmd-fr",
 		description: "Commander · sections françaises",
 		content: `${FENCE}decklist

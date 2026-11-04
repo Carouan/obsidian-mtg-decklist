@@ -13,6 +13,7 @@ import { useTouchCardUi } from "../utils/touch-ui";
 import { renderColorIdentityPips } from "../ui/mana-symbols";
 import { displaySetName, frenchSetName, setMatchesQuery } from "../scryfall/set-localization";
 import { catalogColumnCount, catalogPageSize } from "../utils/catalog-layout";
+import { renderLegalityBadge } from "./legality-badge";
 
 const COLOR_ORDER = ["w", "u", "b", "r", "g", "m", "c"];
 
@@ -245,6 +246,14 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 			options.sort, (v) => { options.sort = v as CatalogSort; state.page = 0; renderResults(); },
 			t(options.language, "Sort cards"),
 		);
+		createSelect(
+			displayControls,
+			[["off", t(options.language, "Legality off")],
+				...["standard", "pioneer", "modern", "legacy", "vintage", "pauper", "commander", "brawl"]
+					.map((value): [string, string] => [value, value.charAt(0).toUpperCase() + value.slice(1)])],
+			options.legality, (value) => { options.legality = value as CatalogOptions["legality"]; renderResults(); },
+			t(options.language, "Card legality format"),
+		);
 		const status = container.createDiv({ cls: "mtg-catalog-status" });
 		const pagerTop = container.createDiv({ cls: "mtg-catalog-pager" });
 		const results = container.createDiv({ cls: "mtg-catalog-results" });
@@ -402,6 +411,7 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 					name,
 					subtitle: `${canonical.set_name ?? canonical.set ?? ""} · ${canonical.collector_number ?? ""}`,
 					onCopy: copyPrinting,
+					legalityFormat: options.legality,
 				});
 			} else {
 				const row = slot.createDiv({ cls: "mtg-catalog-row" });
@@ -412,6 +422,9 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 					link.addEventListener("mouseleave", () => plugin.preview.hide());
 				}
 				row.createSpan({ cls: "mtg-catalog-card-set", text: `${canonical.set_name ?? canonical.set ?? ""} · ${canonical.collector_number ?? ""}` });
+				if (options.legality !== "off") {
+					renderLegalityBadge(row, canonical, options.legality, options.language);
+				}
 			}
 			if (options.view === "list") {
 				const copy = slot.createEl("button", {

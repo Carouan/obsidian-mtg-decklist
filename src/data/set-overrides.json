@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "description": "Curated presentation metadata only; Scryfall remains the source of set dates, codes, card totals, and legality.",
+  "universes_beyond": {
+    "codes": ["40k", "who", "pip", "ltr", "ltc", "acr", "fin", "fic", "spm", "spe", "tmt", "tmc", "bot", "rex", "pml"],
+    "name_contains": [
+      "the lord of the rings",
+      "doctor who",
+      "warhammer 40,000",
+      "fallout",
+      "assassin's creed",
+      "final fantasy",
+      "spider-man",
+      "teenage mutant ninja turtles",
+      "transformers",
+      "jurassic world",
+      "the hobbit",
+      "star trek",
+      "avatar: the last airbender",
+      "marvel"
+    ]
+  },
+  "funny_set_codes": ["ugl", "unh", "ust", "und", "unf", "cmb1", "cmb2"],
+  "block_names_fr": {
+    "usg": "Bloc Urza",
+    "tmp": "Bloc Tempête",
+    "mir": "Bloc Mirage",
+    "ice": "Bloc Ère glaciaire",
+    "mmq": "Bloc Masques de Mercadia",
+    "ons": "Bloc Carnage",
+    "ody": "Bloc Odyssée",
+    "mrd": "Bloc Mirrodin",
+    "rav": "Bloc Ravnica",
+    "zen": "Bloc Zendikar",
+    "isd": "Bloc Innistrad"
+  }
+}

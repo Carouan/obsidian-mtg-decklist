@@ -1,4 +1,5 @@
 import { isSupportedLanguage, type CardLanguage } from "../utils/languages";
+import type { LegalityFormat } from "../settings";
 
 export type CatalogKind = "extension" | "cardlist";
 export type CatalogView = "list" | "gallery";
@@ -16,6 +17,7 @@ export interface CatalogOptions {
 	type: string;
 	rarity: string;
 	unique: "set" | "prints";
+	legality: LegalityFormat;
 	errors: string[];
 }
 
@@ -49,6 +51,7 @@ export function parseCatalogBlock(source: string, kind: CatalogKind, fallbackLan
 		kind, language: fallbackLanguage, view: kind === "extension" ? "gallery" : "list",
 		sort: kind === "extension" ? "color" : "set",
 		set: "", card: "", colors: [], type: "any", rarity: "any", unique: "set", errors: [],
+		legality: "off",
 	};
 	for (const line of source.split(/\r?\n/)) {
 		const value = line.trim();
@@ -99,6 +102,11 @@ export function parseCatalogBlock(source: string, kind: CatalogKind, fallbackLan
 			case "unique":
 				if (normalized === "set" || normalized === "prints") options.unique = normalized;
 				else options.errors.push(`Unknown unique mode: ${raw}`);
+				break;
+			case "format": case "legality":
+				if (["off", "standard", "pioneer", "modern", "legacy", "vintage", "pauper", "commander", "brawl"].includes(normalized)) {
+					options.legality = normalized as LegalityFormat;
+				} else options.errors.push(`Unknown format: ${raw}`);
 				break;
 			default: options.errors.push(`Unknown option: ${key}`);
 		}

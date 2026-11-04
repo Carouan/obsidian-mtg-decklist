@@ -321,7 +321,12 @@ function renderSection(
 			const card = resolved.card
 				? plugin.client.getLocalizedCard(resolved.card, language, Boolean(resolved.entry.set)) ?? resolved.card
 				: null;
-			renderGalleryCard(list, card, plugin, language, { name: resolved.entry.name, quantity: resolved.entry.quantity });
+			renderGalleryCard(list, card, plugin, language, {
+				name: resolved.entry.name,
+				quantity: resolved.entry.quantity,
+				legalityFormat,
+				colorIdentityViolation: resolved.card ? violations.get(resolved.card.id) : undefined,
+			});
 			continue;
 		}
 		renderCardRow(list, resolved, {

@@ -4,7 +4,7 @@ import type { CardPreview } from "../ui/card-preview";
 import type { SymbologyClient } from "../scryfall/symbology";
 import { debounce } from "../utils/debounce";
 import type { CardLanguage, ImageQuality, LegalityFormat } from "../settings";
-import { legalityNote } from "./legality";
+import { renderLegalityBadge } from "./legality-badge";
 import type { ResolvedEntry } from "./grouping";
 import { resolveCardTag } from "../utils/card-tags";
 import { useTouchCardUi } from "../utils/touch-ui";
@@ -126,13 +126,7 @@ export function renderCardRow(parent: HTMLElement, resolved: ResolvedEntry, opts
 		renderManaCost(row, entry.hints.mana_cost, opts.symbology);
 	}
 
-	const note = card ? legalityNote(card, opts.legalityFormat, opts.uiLanguage ?? "en") : null;
-	if (note) {
-		const warn = row.createSpan({ cls: "mtg-card-warning mtg-card-warning-legality" });
-		setIcon(warn, "ban");
-		warn.setAttribute("title", note);
-		warn.setAttribute("aria-label", note);
-	}
+	if (card) renderLegalityBadge(row, card, opts.legalityFormat, opts.uiLanguage ?? "en");
 
 	if (!card) return;
 

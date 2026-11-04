@@ -119,8 +119,34 @@ view: gallery
 
 `unique: set` affiche une impression représentative par extension. `unique: prints` conserve les variantes d'impression. Les boutons **Page précédente** et **Page suivante** évitent de télécharger toutes les éditions d'un coup. Le nombre total de pages peut rester inconnu tant que toutes les variantes d'une carte n'ont pas été parcourues. Les données de recherche sont conservées temporairement en mémoire (pas comme images PNG dans le coffre).
 
+## Index visuel des extensions et indicateurs de légalité
+
+Le bloc `extension-index` présente toutes les extensions avec un tableau ou une **galerie organisée par blocs** :
+
+````markdown
+```extension-index
+language: fr
+view: gallery
+group: block
+sort: date-desc
+ub: exclude
+format: all
+funny: false
+digital: false
+```
+````
+
+- **Affichage** : tableau ou galerie. Dans un panneau suffisamment large, la galerie comporte **trois petits blocs par rangée**. Chaque bloc historique affiche son titre, ses dates extrêmes en *mois/année* et **trois petites fiches d'extensions par rangée** avec leurs vrais symboles Scryfall, leur nom et leur code. Sur mobile, les blocs se redisposent sur deux ou une colonne.
+- **Tris** : par date décroissante ou croissante, par nom, ou par nombre de cartes.
+- **Filtres** : catégorie Scryfall, recherche par nom ou bloc, Universes Beyond (tous, masquer les identifiés, uniquement les identifiés), produits humoristiques (masqués par défaut) et produits numériques.
+- **Formats** : *Standard*, *Pioneer*, *Modern*, *Legacy*, *Vintage*, *produits Commander*. **Attention** : ce sont des repères indicatifs fondés sur la période ou la catégorie de publication, **pas une preuve de légalité de chaque carte**. Les rotations, exceptions et bannissements sont à vérifier au niveau des cartes.
+- Les noms français de blocs et la classification de certains produits Universes Beyond proviennent d'un petit fichier JSON complémentaire. Les codes, dates, nombres de cartes et vrais symboles SVG proviennent toujours de Scryfall.
+- Un clic sur une édition ouvre son explorateur de cartes. **Retour à l'index** permet de revenir à la navigation.
+
+Pour les cartes, `legality: commander` dans un deck ou `format: modern` dans un bloc `extension` active les **pictogrammes Interdite / Restreinte / Hors format**. Ils utilisent le champ `legalities` de Scryfall ; il n'y a pas de liste locale de cartes bannies à mettre à jour manuellement.
+
 ## Raccourcis de modèles intégrés
 
-Sur une ligne vide dans l'éditeur, taper `deck-cmd-fr`, `deck-cmd-auto-fr`, `deck-60-fr`, `deck-vintage-en`, `foudre-ext` ou `ext-mirage`, puis sélectionner la suggestion proposée avec Entrée ou un clic. Le raccourci est alors remplacé par le bloc Markdown correspondant. **Aucun module Templater n'est nécessaire.** Le texte n'est jamais remplacé automatiquement sans validation.
+Sur une ligne vide dans l'éditeur, taper `deck-cmd-fr`, `deck-cmd-auto-fr`, `deck-60-fr`, `deck-vintage-en`, `foudre-ext`, `ext-mirage` ou `ext-index-fr`, puis sélectionner la suggestion proposée avec Entrée ou un clic. Le raccourci est alors remplacé par le bloc Markdown correspondant. **Aucun module Templater n'est nécessaire.** Le texte n'est jamais remplacé automatiquement sans validation.
 
 Pour signaler un problème, joindre le bloc `decklist` concerné (sans données privées), la version du plugin et, si possible, une capture d'écran dans une [issue GitHub](https://github.com/Ekrizdis367/obsidian-mtg-decklist/issues).

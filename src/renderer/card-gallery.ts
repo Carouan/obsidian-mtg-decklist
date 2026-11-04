@@ -1,10 +1,11 @@
 import type MtgDecklistPlugin from "../main";
-import type { CardLanguage } from "../settings";
+import type { CardLanguage, LegalityFormat } from "../settings";
 import type { ScryfallCard } from "../scryfall/types";
 import { localizedDisplayName } from "../scryfall/localization";
 import { useTouchCardUi } from "../utils/touch-ui";
 import { setIcon } from "obsidian";
 import { t } from "../utils/i18n";
+import { renderLegalityBadge } from "./legality-badge";
 
 /** Smallest useful card image. Higher resolution remains available in the preview. */
 export function galleryImageUrl(card: ScryfallCard): string | null {
@@ -17,7 +18,10 @@ export function renderGalleryCard(
 	card: ScryfallCard | null,
 	plugin: MtgDecklistPlugin,
 	language: CardLanguage,
-	options: { name: string; quantity?: number; subtitle?: string; onOpen?: () => void; onCopy?: () => void },
+	options: {
+		name: string; quantity?: number; subtitle?: string; onOpen?: () => void;
+		onCopy?: () => void; legalityFormat?: LegalityFormat; colorIdentityViolation?: string[];
+	},
 ): HTMLElement {
 	const tile = parent.createDiv({ cls: "mtg-gallery-tile" });
 	const display = card ?? undefined;
@@ -34,6 +38,19 @@ export function renderGalleryCard(
 	}
 	if (options.quantity && options.quantity > 1) {
 		art.createSpan({ cls: "mtg-gallery-quantity", text: `×${options.quantity}` });
+	}
+	if (card && options.legalityFormat) {
+		renderLegalityBadge(tile, card, options.legalityFormat, language);
+	}
+	if (options.colorIdentityViolation?.length) {
+		const warning = tile.createSpan({ cls: "mtg-legality-badge mtg-legality-color-identity" });
+		setIcon(warning, "triangle-alert");
+		const label = t(language, "Outside commander color identity: {colors}", {
+			colors: options.colorIdentityViolation.join(""),
+		});
+		warning.setAttribute("title", label);
+		warning.setAttribute("aria-label", label);
+		warning.setAttribute("role", "img");
 	}
 	if (options.onCopy) {
 		// The copy action belongs to each card, not the grid as a whole.
