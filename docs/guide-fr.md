@@ -101,10 +101,10 @@ sortby: color
 ````
 
 - **Avant le chargement**, choisir les couleurs avec les **symboles de mana**, le type et la rareté. Cliquer sur **Afficher les cartes** : les filtres sont envoyés directement à Scryfall. Le symbole rouge seul donne des cartes **exclusivement rouges** ; le filtre **Multicolore** est séparé. Plusieurs couleurs sélectionnées fonctionnent comme un « OU ».
-- **Après le chargement**, passer de la liste à la galerie et réorganiser les cartes. Les boutons **Page précédente** et **Page suivante**, en haut et en bas, naviguent par groupes de 24 cartes. Les images ne sont chargées qu'au moment de leur affichage à l'écran.
-- Le bouton **Rechercher une extension** propose des noms et codes d'extension. Mirage utilise le code **MIR**.
+- **Après le chargement**, passer de la liste à la galerie et réorganiser les cartes. Les boutons **Page précédente** et **Page suivante**, en haut et en bas, naviguent par groupes de **24 cartes par défaut**. Le nombre de cartes par page (8 à 60) et le nombre de colonnes de la galerie (4 par défaut sur ordinateur) sont personnalisables dans **Paramètres → MTG Decklist → Explorateur de cartes et d'extensions**. Les images ne sont chargées qu'au moment de leur affichage à l'écran.
+- Le bouton **Rechercher une extension** ouvre un **menu déroulant** contenant les extensions répertoriées par Scryfall, filtrable en saisissant du texte dans le champ de recherche. Certains noms français sont reconnus, notamment **Terres natales = Homelands (HML)**. Mirage utilise le code **MIR**. Les noms des autres extensions restent en anglais lorsqu'aucun alias français n'est renseigné.
 - Une **icône Copier sur chaque carte**, dans le coin supérieur gauche en galerie, fournit une ligne utilisable dans un deck au format `1 Card Name (SET) numéro`. En mode liste, le bouton reste écrit en toutes lettres.
-- En français, le visuel exact de l'édition est demandé à Scryfall ; s'il n'existe pas en français **ou s'il est seulement fourni sous forme d'image de remplacement**, son visuel anglais est conservé pour ne pas confondre les extensions.
+- En français, le visuel exact de l'édition est demandé à Scryfall. Si l'API possède le **nom imprimé français** mais seulement une image de remplacement (fréquent pour **Homelands / Terres natales**), le nom est affiché en français **sous le véritable visuel anglais**. On conserve l'édition exacte sans prétendre fournir une image française qui n'existe pas chez Scryfall.
 
 Pour retrouver les éditions d'une carte :
 

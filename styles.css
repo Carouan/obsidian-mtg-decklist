@@ -82,6 +82,22 @@
 	gap: 0.7em;
 	margin: 0.5em 0 1.1em;
 }
+.mtg-catalog { container-type: inline-size; }
+.mtg-catalog .mtg-catalog-grid {
+	/* Unlike auto-fill, the default four columns give six complete rows
+	   for the default 24-card page on a normal desktop Obsidian pane. */
+	grid-template-columns: repeat(var(--mtg-catalog-columns, 4), minmax(0, 1fr));
+}
+@container (max-width: 540px) {
+	.mtg-catalog .mtg-catalog-grid {
+		grid-template-columns: repeat(min(3, var(--mtg-catalog-columns, 4)), minmax(0, 1fr));
+	}
+}
+@container (max-width: 370px) {
+	.mtg-catalog .mtg-catalog-grid {
+		grid-template-columns: repeat(min(2, var(--mtg-catalog-columns, 4)), minmax(0, 1fr));
+	}
+}
 .mtg-gallery-tile {
 	display: flex;
 	flex-direction: column;
@@ -282,14 +298,16 @@
 	border-top: 1px solid var(--background-modifier-border);
 }
 .mtg-catalog-set-choices {
-	max-height: 14em;
-	overflow-y: auto;
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.25em;
+	display: block;
+	width: 100%;
 }
 .mtg-catalog-set-choices.is-hidden { display: none; }
 .mtg-catalog-set-choices button { font-size: 0.8em; }
+.mtg-catalog-set-picker {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+}
 .mtg-catalog-error { color: var(--text-error); font-size: 0.8em; margin-bottom: 0.4em; }
 .mtg-catalog-group-title {
 	font-size: 0.9em;

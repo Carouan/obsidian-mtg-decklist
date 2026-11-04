@@ -11,8 +11,9 @@ import { renderGalleryCard } from "./card-gallery";
 import { classifyByType } from "./grouping";
 import { useTouchCardUi } from "../utils/touch-ui";
 import { renderColorIdentityPips } from "../ui/mana-symbols";
+import { displaySetName, frenchSetName, setMatchesQuery } from "../scryfall/set-localization";
+import { catalogColumnCount, catalogPageSize } from "../utils/catalog-layout";
 
-const BATCH_SIZE = 24;
 const COLOR_ORDER = ["w", "u", "b", "r", "g", "m", "c"];
 
 interface CatalogState {
@@ -21,6 +22,7 @@ interface CatalogState {
 	nextPage: string | undefined;
 	total: number;
 	page: number;
+	pageSize: number;
 	query: string;
 	set: ScryfallSet | null;
 	request: number;
@@ -106,8 +108,10 @@ function sortedCards(cards: ScryfallCard[], sort: CatalogSort): ScryfallCard[] {
 export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogKind) {
 	return (source: string, container: HTMLElement, _ctx: MarkdownPostProcessorContext): void => {
 		const options = parseCatalogBlock(source, kind, plugin.settings.cardLanguage);
+		const pageSize = catalogPageSize(plugin.settings.catalogPageSize);
+		const columns = catalogColumnCount(plugin.settings.catalogColumns);
 		const state: CatalogState = {
-			options, cards: [], nextPage: undefined, total: 0, page: 0,
+			options, cards: [], nextPage: undefined, total: 0, page: 0, pageSize,
 			query: "", set: null, request: 0, loading: false, observer: null,
 		};
 		_ctx.addChild(new CatalogCleanup(container, () => {
@@ -117,6 +121,7 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 		}));
 		container.empty();
 		container.addClass("mtg-decklist", "mtg-catalog");
+		container.style.setProperty("--mtg-catalog-columns", String(columns));
 		const header = container.createDiv({ cls: "mtg-catalog-heading", text: t(options.language, kind === "extension" ? "Set explorer" : "Card printings") });
 		for (const error of options.errors) container.createDiv({ cls: "mtg-catalog-error", text: error });
 		const filters = container.createDiv({ cls: "mtg-catalog-filters" });
@@ -135,26 +140,46 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 		if (kind === "extension") {
 			const find = inputRow.createEl("button", { text: t(options.language, "Find a set"), attr: { type: "button" } });
 			const choices = filters.createDiv({ cls: "mtg-catalog-set-choices is-hidden" });
+			let knownSets: ScryfallSet[] | null = null;
+			const updateSetPicker = () => {
+				if (!knownSets) return;
+				choices.empty();
+				const picker = choices.createEl("select", {
+					cls: "dropdown mtg-catalog-set-picker",
+					attr: { "aria-label": t(options.language, "Choose a set") },
+				});
+				picker.createEl("option", { value: "", text: t(options.language, "Choose a set") });
+				const filtered = knownSets.filter((set) => setMatchesQuery(set, input.value, options.language));
+				filtered.sort((a, b) => displaySetName(a, options.language).localeCompare(displaySetName(b, options.language), options.language));
+				if (!filtered.length) {
+					choices.createSpan({ text: t(options.language, "No matching set") });
+				}
+				for (const set of filtered) {
+					picker.createEl("option", {
+						value: set.code,
+						text: `${displaySetName(set, options.language)} (${set.code.toUpperCase()})`,
+					});
+				}
+				picker.addEventListener("change", () => {
+					const selected = filtered.find((set) => set.code === picker.value);
+					if (!selected) return;
+					options.set = selected.code;
+					input.value = frenchSetName(selected, options.language) ?? selected.name;
+					choices.addClass("is-hidden");
+				});
+				picker.focus();
+			};
+			input.addEventListener("input", () => {
+				if (!choices.hasClass("is-hidden")) updateSetPicker();
+			});
 			find.addEventListener("click", () => {
 				void (async () => {
 					find.disabled = true;
 					try {
-						const all = await plugin.client.listSets();
-						choices.empty();
-						const filtered = all.filter((set) => {
-							const term = input.value.toLowerCase().trim();
-							return !term || set.name.toLowerCase().includes(term) || set.code.includes(term);
-						}).slice(0, 40);
-						if (!filtered.length) choices.createDiv({ text: t(options.language, "No matching set") });
-						for (const set of filtered) {
-							const button = choices.createEl("button", { text: `${set.name} (${set.code.toUpperCase()})` });
-							button.addEventListener("click", () => {
-								options.set = set.code;
-								input.value = set.code;
-								choices.addClass("is-hidden");
-							});
-						}
+						knownSets ??= await plugin.client.listSets();
+						if (!container.isConnected) return;
 						choices.removeClass("is-hidden");
+						updateSetPicker();
 					} finally { find.disabled = false; }
 				})();
 			});
@@ -239,11 +264,11 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 					state.nextPage = undefined;
 					state.page = 0;
 					if (kind === "extension") {
-						const set = await plugin.client.findSet(options.set);
+						const set = await plugin.client.findSet(options.set, options.language);
 						if (!set) throw new Error(t(options.language, "Set not found"));
 						state.set = set;
 						state.query = buildExtensionQuery(set.code, options);
-						header.setText(`${set.name} (${set.code.toUpperCase()})`);
+						header.setText(`${displaySetName(set, options.language)} (${set.code.toUpperCase()})`);
 					} else {
 						const card = await plugin.client.fetchCardByName(options.card.trim());
 						if (!card?.oracle_id) throw new Error(t(options.language, "Card not found"));
@@ -254,7 +279,8 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 				const order = options.sort === "color" || options.sort === "mana" || options.sort === "name"
 					? (options.sort === "mana" ? "cmc" : options.sort) : "set";
 				// Scryfall uses up to 175 results per API page. The interface uses
-				// 24 cards per visible page. Only fetch further API pages when the
+				// A configurable number of cards per visible page. Only fetch
+				// further API pages when the
 				// requested visible page needs them; cap requests per interaction.
 				const targetPage = next ? state.page + 1 : 0;
 				for (let batch = 0; batch < 3; batch++) {
@@ -270,9 +296,9 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 					state.cards.push(...page.data);
 					state.nextPage = page.has_more ? page.next_page : undefined;
 					state.total = page.total_cards ?? state.cards.length;
-					if (uniqueCatalogCards(state.cards, kind, options.unique).length > targetPage * BATCH_SIZE || !state.nextPage) break;
+					if (uniqueCatalogCards(state.cards, kind, options.unique).length > targetPage * state.pageSize || !state.nextPage) break;
 				}
-				if (uniqueCatalogCards(state.cards, kind, options.unique).length > targetPage * BATCH_SIZE) {
+				if (uniqueCatalogCards(state.cards, kind, options.unique).length > targetPage * state.pageSize) {
 					state.page = targetPage;
 				}
 				state.loading = false;
@@ -292,8 +318,8 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 			if (!state.cards.length) return;
 			const distinct = uniqueCatalogCards(state.cards, kind, options.unique);
 			const sorted = sortedCards(distinct, options.sort);
-			const start = state.page * BATCH_SIZE;
-			const showing = sorted.slice(start, start + BATCH_SIZE);
+			const start = state.page * state.pageSize;
+			const showing = sorted.slice(start, start + state.pageSize);
 			status.setText(kind === "cardlist" && options.unique === "set"
 				? t(options.language, "{shown} sets found among {loaded} printings loaded", {
 					shown: distinct.length, loaded: state.cards.length,
@@ -301,21 +327,21 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 				: t(options.language, "Showing {start}–{end} of {total} cards", {
 					start: start + 1, end: start + showing.length, total: state.total,
 				}));
-			const hasNext = start + BATCH_SIZE < sorted.length || Boolean(state.nextPage);
+			const hasNext = start + state.pageSize < sorted.length || Boolean(state.nextPage);
 			function drawPager(parent: HTMLElement): void {
 				const previous = parent.createEl("button", { text: t(options.language, "Previous page"), attr: { type: "button" } });
 				previous.disabled = state.page === 0 || state.loading;
 				previous.addEventListener("click", () => { state.page--; renderResults(); });
 				const pageTotal = kind === "cardlist" && options.unique === "set"
 					? ""
-					: ` / ${Math.ceil(state.total / BATCH_SIZE)}`;
+					: ` / ${Math.ceil(state.total / state.pageSize)}`;
 				parent.createSpan({ cls: "mtg-catalog-page-label", text: t(options.language, "Page {number}", {
 					number: state.page + 1,
 				}) + pageTotal });
 				const forward = parent.createEl("button", { text: t(options.language, "Next page"), attr: { type: "button" } });
 				forward.disabled = !hasNext || state.loading;
 				forward.addEventListener("click", () => {
-					if (start + BATCH_SIZE < sorted.length) {
+					if (start + state.pageSize < sorted.length) {
 						state.page++;
 						renderResults();
 					} else if (state.nextPage) {

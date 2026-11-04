@@ -3,6 +3,7 @@ import type MtgDecklistPlugin from "./main";
 import { ARCHIDEKT_DEFAULT_TTL_MINUTES, MOXFIELD_DEFAULT_TTL_MINUTES } from "./utils/constants";
 import { t } from "./utils/i18n";
 import { LANGUAGE_OPTIONS, type CardLanguage as SupportedCardLanguage } from "./utils/languages";
+import { CATALOG_PAGE_SIZES, CATALOG_COLUMN_COUNTS, DEFAULT_CATALOG_PAGE_SIZE, DEFAULT_CATALOG_COLUMNS } from "./utils/catalog-layout";
 
 export type GroupingMode = "auto" | "manual" | "respect-manual";
 export type CardSortOrder = "source" | "name" | "cmc-name";
@@ -24,6 +25,8 @@ export interface MtgDecklistSettings {
 	cardSortOrder: CardSortOrder;
 	imageQuality: ImageQuality;
 	cardLanguage: CardLanguage;
+	catalogPageSize: number;
+	catalogColumns: number;
 	hoverDelayMs: number;
 	legalityFormat: LegalityFormat;
 	showStats: boolean;
@@ -39,6 +42,8 @@ export const DEFAULT_SETTINGS: MtgDecklistSettings = {
 	cardSortOrder: "name",
 	imageQuality: "normal",
 	cardLanguage: "en",
+	catalogPageSize: DEFAULT_CATALOG_PAGE_SIZE,
+	catalogColumns: DEFAULT_CATALOG_COLUMNS,
 	hoverDelayMs: 200,
 	legalityFormat: "off",
 	showStats: true,
@@ -158,6 +163,42 @@ export class MtgDecklistSettingTab extends PluginSettingTab {
 										}
 									}),
 							);
+						},
+					},
+				],
+			},
+			{
+				type: "group",
+				heading: tr("Catalog explorer"),
+				items: [
+					{
+						name: tr("Cards per page"),
+						desc: tr("Number of cards per page in extension and printing galleries. Reopen the note to refresh existing catalogs."),
+						render: (setting) => {
+							setting.addDropdown((dd) => {
+								for (const size of CATALOG_PAGE_SIZES) {
+									dd.addOption(String(size), String(size));
+								}
+								dd.setValue(String(plugin.settings.catalogPageSize)).onChange(async (value) => {
+									plugin.settings.catalogPageSize = Number(value);
+									await plugin.saveSettings();
+								});
+							});
+						},
+					},
+					{
+						name: tr("Gallery columns"),
+						desc: tr("Preferred number of columns for set and printing galleries, when there is enough room."),
+						render: (setting) => {
+							setting.addDropdown((dd) => {
+								for (const columns of CATALOG_COLUMN_COUNTS) {
+									dd.addOption(String(columns), String(columns));
+								}
+								dd.setValue(String(plugin.settings.catalogColumns)).onChange(async (value) => {
+									plugin.settings.catalogColumns = Number(value);
+									await plugin.saveSettings();
+								});
+						});
 						},
 					},
 				],

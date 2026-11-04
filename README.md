@@ -270,7 +270,7 @@ view: gallery
 ```
 ````
 
-**Explore a set.** A new `extension` block renders a search panel **without downloading a complete set on note load**. Change the mana-symbol color checkboxes, card type and rarity, then click *Show cards*. The Scryfall search is filtered server-side before results are returned, with **24 cards per visible page**, lazy thumbnail loading, and **Previous page / Next page** controls at both the top and bottom. Additional Scryfall pages are downloaded only if needed. Use the lookup button to find a set by name or code.
+**Explore a set.** A new `extension` block renders a search panel **without downloading a complete set on note load**. Change the mana-symbol color checkboxes, card type and rarity, then click *Show cards*. The Scryfall search is filtered server-side before results are returned, with **24 cards per visible page by default** (configurable in plugin settings), lazy thumbnail loading, and **Previous page / Next page** controls at both the top and bottom. Additional Scryfall pages are downloaded only if needed. Use **Find a set** to open a searchable drop-down of Scryfall sets, including available French-name aliases such as **Terres natales / Homelands (HML)**. Set names supplied by Scryfall are otherwise English.
 
 ````markdown
 ```extension
@@ -298,7 +298,7 @@ sort: set
 ```
 ````
 
-Catalog galleries show set names and collector numbers. Each card has its own **copy icon** (top-left corner) to copy a line such as `1 Lightning Bolt (M10) 146` for reuse in a decklist; list mode keeps a separate text button. Images are fetched lazily and the French image is requested for the **same set and collector number** where a scan exists; if Scryfall only returns an *image placeholder*, the exact English edition remains visible. The page indicator is exact for ordinary extension/printing searches; `cardlist` with `unique: set` shows a page number without claiming the final number of distinct sets until all printings are fetched. Catalog search data uses a bounded **in-memory** cache rather than growing the Obsidian `data.json` file. Image files remain on Scryfall's CDN.
+Catalog galleries show set names and collector numbers. Each card has its own **copy icon** (top-left corner) to copy a line such as `1 Lightning Bolt (M10) 146` for reuse in a decklist; list mode keeps a separate text button. Images are fetched lazily and the French printing is requested for the **same set and collector number**. If Scryfall supplies a translated `printed_name` but only an *image placeholder* (as it does for much of **Homelands/HML**), the gallery shows the **French name below the original English image** rather than a placeholder. This cannot recreate a French card scan that Scryfall does not host. The default catalog grid uses **four columns** at desktop widths; columns can be changed in the plugin settings, with fewer columns on narrow panes. The page indicator is exact for ordinary extension/printing searches; `cardlist` with `unique: set` shows a page number without claiming the final number of distinct sets until all printings are fetched. Catalog search data uses a bounded **in-memory** cache rather than growing the Obsidian `data.json` file. Image files remain on Scryfall's CDN.
 
 **Template shortcuts.** On a line of its own in the Obsidian editor, type one of the following, then *select* the displayed suggestion to expand it:
 

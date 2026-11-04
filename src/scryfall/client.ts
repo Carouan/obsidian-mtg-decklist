@@ -12,6 +12,7 @@ import { CardCache, normalizeCardName, printingKey } from "./cache";
 import { bestLocalizedPrint, localizedPrintingKey } from "./localization";
 import type { ScryfallCard, ScryfallCardPage, ScryfallSet } from "./types";
 import type { CardLanguage } from "../settings";
+import { resolveSetByName } from "./set-localization";
 
 export class ScryfallClient {
 	private queue: Promise<unknown> = Promise.resolve();
@@ -41,7 +42,7 @@ export class ScryfallClient {
 		return Array.isArray(data?.data) ? data.data : [];
 	}
 
-	async findSet(nameOrCode: string): Promise<ScryfallSet | null> {
+	async findSet(nameOrCode: string, language: CardLanguage = "en"): Promise<ScryfallSet | null> {
 		const normalized = nameOrCode.trim().toLowerCase();
 		if (!normalized || normalized.length > 80) return null;
 		// Scryfall /sets/:code only accepts set codes, not names.
@@ -50,9 +51,7 @@ export class ScryfallClient {
 			if (found?.code) return found;
 		}
 		const sets = await this.listSets();
-		return sets.find((set) => set.code.toLowerCase() === normalized)
-			?? sets.find((set) => set.name.toLowerCase() === normalized)
-			?? null;
+		return resolveSetByName(sets, normalized, language);
 	}
 
 	/** Exact set/language image; deliberately DOES NOT substitute a different set. */
@@ -60,15 +59,24 @@ export class ScryfallClient {
 		if (language === "en" || !card.set || !card.collector_number) return null;
 		const url = `${SCRYFALL_CARDS_BASE}/${encodeURIComponent(card.set)}/${encodeURIComponent(card.collector_number)}/${language}`;
 		const candidate = await this.requestCatalog<ScryfallCard>(url);
-		// Scryfall can return a 'Localized Image Not Available' placeholder
-		// for an otherwise valid translated card. The exact English artwork
-		// is better than displaying that placeholder over every thumbnail.
-		return candidate?.lang === language &&
-			candidate.set === card.set &&
-			candidate.collector_number === card.collector_number &&
-			candidate.image_status !== "placeholder" &&
-			candidate.image_status !== "missing"
-			? candidate : null;
+		if (!candidate || candidate.lang !== language ||
+			candidate.set !== card.set || candidate.collector_number !== card.collector_number) return null;
+		// Some historical editions have official translated names in the API,
+		// but Scryfall only supplies a 'Localized Image Not Available' picture.
+		// Retain the French printed name while showing the genuine artwork from
+		// the same English printing, never the misleading placeholder image.
+		if (candidate.image_status === "placeholder" || candidate.image_status === "missing") {
+			if (!card.image_uris && !card.card_faces?.some((face) => face.image_uris)) return null;
+			return {
+				...candidate,
+				image_uris: card.image_uris,
+				card_faces: candidate.card_faces?.map((face, index) => ({
+					...face,
+					image_uris: card.card_faces?.[index]?.image_uris ?? face.image_uris,
+				})),
+			};
+		}
+		return candidate;
 	}
 
 	private async requestCatalog<T>(url: string): Promise<T | null> {

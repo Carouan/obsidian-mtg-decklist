@@ -131,6 +131,86 @@ test("missing localized printing is cached negatively, without blocking English 
 	assert.equal(count, 1);
 });
 
+test("French set aliases match accented names and English names or codes", async () => {
+	const { displaySetName, normalizeSetName, resolveSetByName, setMatchesQuery } = await loadTypeScript("src/scryfall/set-localization.ts");
+	const sets = [
+		{ id: "hml-id", code: "hml", name: "Homelands" },
+		{ id: "ice-id", code: "ice", name: "Ice Age" },
+		{ id: "mir-id", code: "mir", name: "Mirage" },
+	];
+	assert.equal(normalizeSetName("L'Ère glaciaire"), "l ere glaciaire");
+	assert.equal(displaySetName(sets[0], "fr"), "Terres natales — Homelands");
+	assert.equal(displaySetName(sets[0], "en"), "Homelands");
+	assert.equal(resolveSetByName(sets, "Terres natales", "fr").code, "hml");
+	assert.equal(resolveSetByName(sets, "TERRES NATALES", "fr").code, "hml");
+	assert.equal(resolveSetByName(sets, "Homelands", "fr").code, "hml");
+	assert.equal(resolveSetByName(sets, "hml", "fr").code, "hml");
+	assert.equal(resolveSetByName(sets, "Terres natales", "en"), null);
+	assert.equal(setMatchesQuery(sets[0], "terres", "fr"), true);
+	assert.equal(setMatchesQuery(sets[0], "home", "fr"), true);
+	assert.equal(setMatchesQuery(sets[1], "glaciaire", "fr"), true);
+	assert.equal(setMatchesQuery(sets[2], "terres", "fr"), false);
+});
+
+test("catalog page size and column controls use shared validated defaults", async () => {
+	const {
+		CATALOG_PAGE_SIZES, CATALOG_COLUMN_COUNTS,
+		catalogPageSize, catalogColumnCount,
+	} = await loadTypeScript("src/utils/catalog-layout.ts");
+	assert.deepEqual([...CATALOG_PAGE_SIZES], [8, 12, 16, 20, 24, 32, 40, 48, 60]);
+	assert.deepEqual([...CATALOG_COLUMN_COUNTS], [2, 3, 4, 5, 6]);
+	assert.equal(catalogPageSize(24), 24);
+	assert.equal(catalogPageSize(16), 16);
+	assert.equal(catalogPageSize(60), 60);
+	assert.equal(catalogPageSize(0), 24);
+	assert.equal(catalogPageSize(undefined), 24);
+	assert.equal(catalogColumnCount(4), 4);
+	assert.equal(catalogColumnCount(6), 6);
+	assert.equal(catalogColumnCount(undefined), 4);
+});
+
+test("French print name is preserved with genuine English image when Scryfall has a placeholder", async () => {
+	const { ScryfallClient } = await loadTypeScript("src/scryfall/client.ts");
+	globalThis.window = { setTimeout };
+	let calls = 0;
+	globalThis.__testScryfallRequest = async () => {
+		calls++;
+		return { status: 200, json: {
+			id: "hml-fr-101", lang: "fr", set: "hml", collector_number: "101",
+			printed_name: "Carillon de l'apocalypse", name: "Apocalypse Chime",
+			image_status: "placeholder", image_uris: { normal: "image-not-available.jpg" },
+		}, headers: {} };
+	};
+	const client = new ScryfallClient({});
+	const original = {
+		id: "hml-en-101", name: "Apocalypse Chime", set: "hml", collector_number: "101",
+		image_uris: { normal: "genuine-english-printing.jpg", large: "large-english.jpg" },
+	};
+	const result = await client.exactLocalizedPrinting(original, "fr");
+	assert.equal(result.printed_name, "Carillon de l'apocalypse");
+	assert.equal(result.image_uris.normal, "genuine-english-printing.jpg");
+	assert.equal(result.image_uris.large, "large-english.jpg");
+	assert.equal(original.image_uris.normal, "genuine-english-printing.jpg");
+	assert.equal((await client.exactLocalizedPrinting(original, "fr")).printed_name, "Carillon de l'apocalypse");
+	assert.equal(calls, 1);
+});
+
+test("set name resolution accepts French names through the Scryfall client", async () => {
+	const { ScryfallClient } = await loadTypeScript("src/scryfall/client.ts");
+	globalThis.window = { setTimeout };
+	const sets = [{ id: "1", code: "hml", name: "Homelands" }, { id: "2", code: "mir", name: "Mirage" }];
+	let requests = 0;
+	globalThis.__testScryfallRequest = async ({ url }) => {
+		requests++;
+		assert.match(url, /\/sets$/);
+		return { status: 200, json: { data: sets }, headers: {} };
+	};
+	const client = new ScryfallClient({});
+	assert.equal((await client.findSet("Terres natales", "fr")).code, "hml");
+	assert.equal((await client.findSet("Homelands", "fr")).code, "hml");
+	assert.equal(requests, 1, "set catalog is reused from bounded memory cache");
+});
+
 test("catalog fetches only one page, reuses memory cache and validates exact French set printing", async () => {
 	const { ScryfallClient } = await loadTypeScript("src/scryfall/client.ts");
 	globalThis.window = { setTimeout };
@@ -167,7 +247,7 @@ test("catalog fetches only one page, reuses memory cache and validates exact Fre
 	assert.equal(calls.length, 3, "next page requires an explicit request");
 });
 
-test("catalog ignores untranslated French placeholder artwork and keeps the English printing", async () => {
+test("catalog shows translated card names without displaying French placeholder images", async () => {
 	const { ScryfallClient } = await loadTypeScript("src/scryfall/client.ts");
 	globalThis.window = { setTimeout };
 	let hits = 0;
@@ -181,8 +261,10 @@ test("catalog ignores untranslated French placeholder artwork and keeps the Engl
 	};
 	const client = new ScryfallClient({});
 	const card = { id: "en-158", name: "Blind Fury", set: "mir", collector_number: "158", image_uris: { normal: "english.jpg" } };
-	assert.equal(await client.exactLocalizedPrinting(card, "fr"), null);
-	assert.equal(await client.exactLocalizedPrinting(card, "fr"), null);
+	const localized = await client.exactLocalizedPrinting(card, "fr");
+	assert.equal(localized.printed_name, "Fureur aveugle");
+	assert.equal(localized.image_uris.normal, "english.jpg");
+	assert.equal((await client.exactLocalizedPrinting(card, "fr")).image_uris.normal, "english.jpg");
 	assert.equal(hits, 1, "cached placeholder should not trigger another API call");
 });
 
