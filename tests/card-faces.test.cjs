@@ -60,6 +60,19 @@ test("split, adventure and flip layouts show one composite front, not a false ba
 	}
 });
 
+test("explicit split layout never invents a physical back from separate face images", async () => {
+	const { cardImageFaces } = await load("src/ui/card-image-faces.ts");
+	const result = cardImageFaces({
+		name: "Split // Left", layout: "split",
+		card_faces: [
+			{ name: "Split", image_uris: { normal: "part-a.jpg" } },
+			{ name: "Left", image_uris: { normal: "part-b.jpg" } },
+		],
+	}, "normal");
+	assert.equal(result.length, 1);
+	assert.equal(result[0].url, "part-a.jpg");
+});
+
 test("single-face and incomplete DFC data fail gracefully", async () => {
 	const { cardImageFaces, imageUrlForQuality } = await load("src/ui/card-image-faces.ts");
 	assert.deepEqual(cardImageFaces({ name: "Island", image_uris: { normal: "island.jpg" } }, "normal"), [
