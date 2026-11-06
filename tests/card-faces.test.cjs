@@ -2,10 +2,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const Module = require("node:module");
+const { cwd } = require("node:process");
 const esbuild = require("esbuild");
 
 async function load(relative) {
-	const absolute = path.resolve(process.cwd(), relative);
+	const absolute = path.resolve(cwd(), relative);
 	const built = await esbuild.build({
 		entryPoints: [absolute], bundle: true, platform: "node", format: "cjs", write: false,
 	});
