@@ -1870,3 +1870,112 @@
 	justify-content: flex-end;
 	gap: 0.5em;
 }
+
+/* Keep set symbols and long set names *inside* compact block cards.
+   Obsidian's global image/button defaults otherwise overflow grid tracks. */
+.mtg-index-block,
+.mtg-index-block-sets,
+.mtg-index-mini-set {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  box-sizing: border-box;
+}
+.mtg-index-mini-set {
+  overflow: hidden;
+  white-space: normal;
+  height: auto;
+  min-height: 0;
+  justify-content: flex-start;
+}
+.mtg-index-mini-symbol {
+  inline-size: min(100%, 2.4em);
+  block-size: 2.4em;
+  min-inline-size: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.mtg-index-mini-symbol .mtg-index-set-symbol,
+.mtg-index-mini-symbol > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  max-inline-size: 100%;
+  max-block-size: 100%;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+.mtg-index-mini-title,
+.mtg-index-mini-code {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.25;
+}
+.mtg-index-mini-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.mtg-index-mini-code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Two-faced gallery cards have an explicit switch, usable on touch. */
+.mtg-gallery-flip {
+  position: absolute;
+  z-index: 4;
+  top: 0.3em;
+  right: 0.3em;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 2em;
+  height: 2em;
+  min-width: 2em;
+  min-height: 2em;
+  padding: 0.35em;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-s);
+}
+.mtg-gallery-flip:hover { color: var(--text-accent); }
+.mtg-gallery-flip svg { width: 1.1em; height: 1.1em; }
+.mtg-gallery-tile.is-double-faced .mtg-gallery-quantity {
+  top: auto;
+  bottom: 0.3em;
+  right: 0.3em;
+}
+.mtg-card-preview.is-double-faced {
+  max-width: min(630px, calc(100vw - 24px));
+}
+.mtg-card-preview-faces {
+  display: flex;
+  gap: 0.4em;
+  align-items: flex-start;
+}
+.mtg-card-preview-faces .mtg-card-preview-img {
+  width: calc(50% - 0.2em);
+  min-width: 0;
+  max-height: min(75vh, 560px);
+  object-fit: contain;
+}
+.mtg-card-preview-face-actions {
+  display: flex;
+  gap: 0.45em;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.mtg-card-preview-face-actions button {
+  min-width: 5em;
+}
+.mtg-card-preview-face-actions button.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
