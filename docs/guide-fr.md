@@ -150,3 +150,11 @@ Pour les cartes, `legality: commander` dans un deck ou `format: modern` dans un 
 Sur une ligne vide dans l'éditeur, taper `deck-cmd-fr`, `deck-cmd-auto-fr`, `deck-60-fr`, `deck-vintage-en`, `foudre-ext`, `ext-mirage` ou `ext-index-fr`, puis sélectionner la suggestion proposée avec Entrée ou un clic. Le raccourci est alors remplacé par le bloc Markdown correspondant. **Aucun module Templater n'est nécessaire.** Le texte n'est jamais remplacé automatiquement sans validation.
 
 Pour signaler un problème, joindre le bloc `decklist` concerné (sans données privées), la version du plugin et, si possible, une capture d'écran dans une [issue GitHub](https://github.com/Ekrizdis367/obsidian-mtg-decklist/issues).
+
+## Cartes recto-verso et affichage compact
+
+Les galeries distinguent les cartes physiquement **recto-verso** (transform, modal double-faced, cartes réversibles, jetons recto-verso) des cartes **split**, **Adventure** et **flip**, imprimées sur une seule face. Les vraies cartes recto-verso disposent d’un petit bouton de retournement sur leur vignette.
+
+Dans l’aperçu desktop, les deux faces sont présentées côte à côte ; sur mobile, toucher la carte ouvre l’aperçu avec deux boutons **Recto** et **Verso**. Le choix de l’image ne change pas la référence de la carte, la légalité ou la liste du deck.
+
+Dans la galerie compacte des blocs d’extensions, les symboles restent dans leur case, les noms trop longs sont limités à trois lignes, et la vignette n’affiche qu’un nom (français lorsqu’il existe). Le nom bilingue complet reste dans l’infobulle.
