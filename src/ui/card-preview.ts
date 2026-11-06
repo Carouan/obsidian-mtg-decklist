@@ -4,6 +4,7 @@ import type { ScryfallCard } from "../scryfall/types";
 import { localizedDisplayName } from "../scryfall/localization";
 import type { CardLanguage } from "../settings";
 import { t } from "../utils/i18n";
+import { cardImageFaces } from "./card-image-faces";
 
 const PREVIEW_MARGIN = 12;
 
@@ -23,53 +24,80 @@ export class CardPreview {
 	private ensureOverlay(): HTMLElement {
 		if (this.overlay) return this.overlay;
 		const overlay = activeDocument.body.createDiv({ cls: "mtg-card-preview-overlay is-hidden" });
-		overlay.addEventListener("click", () => this.hide());
+		overlay.addEventListener("click", (event) => {
+			if (event.target === overlay) this.hide();
+		});
 		this.overlay = overlay;
 		return overlay;
 	}
 
 	private pickImageUrl(card: ScryfallCard, quality: ImageQuality): string | null {
-		const fromUris = (uris?: { small?: string; normal?: string; large?: string; png?: string }) => {
-			if (!uris) return null;
-			if (quality === "png") return uris.png ?? uris.large ?? uris.normal ?? uris.small ?? null;
-			return uris[quality] ?? uris.normal ?? uris.large ?? uris.small ?? null;
-		};
-		const direct = fromUris(card.image_uris);
-		if (direct) return direct;
-		const face = card.card_faces?.[0]?.image_uris;
-		return fromUris(face);
+		return cardImageFaces(card, quality)[0]?.url ?? null;
 	}
 
 	showHover(card: ScryfallCard, anchor: HTMLElement, quality: ImageQuality): void {
-		const url = this.pickImageUrl(card, quality);
-		if (!url) return;
+		const first = this.pickImageUrl(card, quality);
+		if (!first) return;
+		const faces = cardImageFaces(card, quality);
+		const signature = faces.map((face) => face.url).join("||");
 		const el = this.ensureEl();
 
-		if (this.currentImageUrl !== url) {
+		if (this.currentImageUrl !== signature) {
 			el.empty();
-			const img = el.createEl("img", { cls: "mtg-card-preview-img" });
-			img.src = url;
-			img.alt = localizedDisplayName(card, card);
-			this.currentImageUrl = url;
+			el.toggleClass("is-double-faced", faces.length > 1);
+			const holder = faces.length > 1
+				? el.createDiv({ cls: "mtg-card-preview-faces" }) : el;
+			for (const face of faces) {
+				const img = holder.createEl("img", { cls: "mtg-card-preview-img" });
+				img.src = face.url;
+				img.alt = face.name;
+			}
+			this.currentImageUrl = signature;
 		}
 
 		el.removeClass("is-hidden");
 		this.position(el, anchor);
 	}
 
-	showTap(card: ScryfallCard, quality: ImageQuality): void {
+	showTap(card: ScryfallCard, quality: ImageQuality, initialFace = 0): void {
+		const faces = cardImageFaces(card, quality);
+		if (!faces.length) return;
 		const overlay = this.ensureOverlay();
-		const url = this.pickImageUrl(card, quality);
-		if (!url) return;
-
 		overlay.empty();
 		const inner = overlay.createDiv({ cls: "mtg-card-preview-overlay-inner" });
-		const img = inner.createEl("img", { cls: "mtg-card-preview-img" });
-		img.src = url;
-		img.alt = localizedDisplayName(card, card);
+		inner.setAttribute("role", "dialog");
+		inner.setAttribute("aria-label", localizedDisplayName(card, card));
+		const image = inner.createEl("img", { cls: "mtg-card-preview-img" });
+		let faceIndex = Math.max(0, Math.min(initialFace, faces.length - 1));
+		const faceButtons: HTMLButtonElement[] = [];
+		const updateFace = () => {
+			const face = faces[faceIndex]!;
+			image.src = face.url;
+			image.alt = face.name;
+			for (let index = 0; index < faceButtons.length; index++) {
+				faceButtons[index]!.toggleClass("is-active", index === faceIndex);
+				faceButtons[index]!.setAttribute("aria-pressed", String(index === faceIndex));
+			}
+		};
+		if (faces.length > 1) {
+			const controls = inner.createDiv({ cls: "mtg-card-preview-face-actions" });
+			for (let index = 0; index < faces.length; index++) {
+				const button = controls.createEl("button", {
+					text: t(this.currentLanguage(), index === 0 ? "Front" : "Back"),
+					attr: { type: "button", "aria-label": faces[index]!.name },
+				});
+				button.addEventListener("click", (event) => {
+					event.stopPropagation();
+					faceIndex = index;
+					updateFace();
+				});
+				faceButtons.push(button);
+			}
+		}
+		updateFace();
 
+		const actions = inner.createDiv({ cls: "mtg-card-preview-tap-actions" });
 		if (card.scryfall_uri) {
-			const actions = inner.createDiv({ cls: "mtg-card-preview-tap-actions" });
 			const open = actions.createEl("a", {
 				cls: "mtg-card-preview-open-scryfall",
 				text: t(this.currentLanguage(), "Open in browser"),
@@ -82,13 +110,20 @@ export class CardPreview {
 				this.hide();
 			});
 		}
-
+		const close = actions.createEl("button", {
+			text: t(this.currentLanguage(), "Close preview"),
+			attr: { type: "button" },
+		});
+		close.addEventListener("click", (event) => {
+			event.stopPropagation();
+			this.hide();
+		});
 		overlay.removeClass("is-hidden");
 	}
 
-	show(card: ScryfallCard, anchor: HTMLElement, quality: ImageQuality): void {
+	show(card: ScryfallCard, anchor: HTMLElement, quality: ImageQuality, faceIndex = 0): void {
 		if (useTouchCardUi()) {
-			this.showTap(card, quality);
+			this.showTap(card, quality, faceIndex);
 		} else {
 			this.showHover(card, anchor, quality);
 		}
