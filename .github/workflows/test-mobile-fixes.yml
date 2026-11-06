@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-android-test-vault:
@@ -50,3 +50,23 @@ jobs:
           path: mtg-decklist-faces-test/
           include-hidden-files: true
           retention-days: 7
+
+      - name: Package one-click ZIP (retain hidden Obsidian plugin directory)
+        run: |
+          zip -q -r mtg-decklist-faces-test.zip mtg-decklist-faces-test
+          unzip -l mtg-decklist-faces-test.zip | grep 'mtg-decklist-faces-test/.obsidian/plugins/mtg-decklist/main.js'
+          unzip -l mtg-decklist-faces-test.zip | grep 'mtg-decklist-faces-test/.obsidian/plugins/mtg-decklist/styles.css'
+      - name: Attach ZIP to a clearly marked testing prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-test-2026-11-06
+          target_commitish: ${{ github.sha }}
+          name: "Android test vault — NOT a stable plugin release"
+          body: |
+            Coffre autonome de test pour Obsidian Android/Windows.
+            Non destiné à l'installation sur le coffre principal.
+            Décompresser le ZIP, conserver .obsidian, puis ouvrir le dossier comme coffre dans Obsidian.
+            Contient les corrections débordement des symboles d'extensions et cartes recto/verso.
+          prerelease: true
+          files: mtg-decklist-faces-test.zip
+          fail_on_unmatched_files: true
