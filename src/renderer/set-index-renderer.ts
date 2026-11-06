@@ -2,7 +2,7 @@ import { MarkdownRenderChild, setIcon, type MarkdownPostProcessorContext } from 
 import type MtgDecklistPlugin from "../main";
 import type { ScryfallSet } from "../scryfall/types";
 import type { CardLanguage } from "../utils/languages";
-import { displaySetName } from "../scryfall/set-localization";
+import { displaySetName, frenchSetName } from "../scryfall/set-localization";
 import { parseSetIndexBlock } from "../parser/set-index-parser";
 import {
 	filterIndexSets, groupIndexSets, groupDateRange, setIconUrl,
@@ -193,7 +193,9 @@ export function createSetIndexProcessor(plugin: MtgDecklistPlugin) {
 							} });
 							const icon = card.createDiv({ cls: "mtg-index-mini-symbol" });
 							iconForSet(icon, set);
-							card.createSpan({ cls: "mtg-index-mini-title", text: displaySetName(set, language) });
+							// Compact tiles display one localized name only; the complete bilingual
+							// name remains accessible in the button tooltip.
+							card.createSpan({ cls: "mtg-index-mini-title", text: frenchSetName(set, language) ?? set.name });
 							card.createSpan({ cls: "mtg-index-mini-code", text: set.code.toUpperCase() });
 							card.addEventListener("click", () => showExplorer(set));
 						}
