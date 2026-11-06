@@ -6,11 +6,11 @@ import { useTouchCardUi } from "../utils/touch-ui";
 import { setIcon } from "obsidian";
 import { t } from "../utils/i18n";
 import { renderLegalityBadge } from "./legality-badge";
+import { cardImageFaces } from "../ui/card-image-faces";
 
 /** Smallest useful card image. Higher resolution remains available in the preview. */
 export function galleryImageUrl(card: ScryfallCard): string | null {
-	const uris = card.image_uris ?? card.card_faces?.[0]?.image_uris;
-	return uris?.normal ?? uris?.large ?? uris?.small ?? uris?.png ?? null;
+	return cardImageFaces(card, "normal")[0]?.url ?? null;
 }
 
 export function renderGalleryCard(
@@ -26,15 +26,38 @@ export function renderGalleryCard(
 	const tile = parent.createDiv({ cls: "mtg-gallery-tile" });
 	const display = card ?? undefined;
 	const title = card ? localizedDisplayName(card, card) : options.name;
-	const imageUrl = card ? galleryImageUrl(card) : null;
+	const faces = card ? cardImageFaces(card, "normal") : [];
+	const imageUrl = faces[0]?.url ?? null;
+	let activeFace = 0;
+	let img: HTMLImageElement | null = null;
 	const art = card
 		? tile.createEl("button", { cls: "mtg-gallery-art", attr: { type: "button", "aria-label": title } })
 		: tile.createDiv({ cls: "mtg-gallery-art" });
 	if (imageUrl) {
-		const img = art.createEl("img", { attr: { alt: title, loading: "lazy", decoding: "async" } });
+		img = art.createEl("img", { attr: { alt: faces[0]?.name ?? title, loading: "lazy", decoding: "async" } });
 		img.src = imageUrl;
 	} else {
 		art.createSpan({ cls: "mtg-gallery-placeholder", text: title });
+	}
+	if (faces.length > 1 && img) {
+		tile.addClass("is-double-faced");
+		const flip = tile.createEl("button", { cls: "mtg-gallery-flip", attr: {
+			type: "button", title: t(language, "Flip card"),
+			"aria-label": t(language, "Flip card"),
+		} });
+		setIcon(flip, "refresh-cw");
+		flip.addEventListener("click", (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			activeFace = (activeFace + 1) % faces.length;
+			const face = faces[activeFace]!;
+			if (img) { img.src = face.url; img.alt = face.name; }
+			art.setAttribute("aria-label", face.name);
+			flip.setAttribute("title", t(language, "Face {number}: {name}", {
+				number: activeFace + 1, name: face.name,
+			}));
+			plugin.preview.hide();
+		});
 	}
 	if (options.quantity && options.quantity > 1) {
 		art.createSpan({ cls: "mtg-gallery-quantity", text: `×${options.quantity}` });
@@ -69,11 +92,11 @@ export function renderGalleryCard(
 	if (display) {
 		art.addEventListener("click", (event) => {
 			event.preventDefault();
-			plugin.preview.show(display, art, plugin.settings.imageQuality);
+			plugin.preview.show(display, art, plugin.settings.imageQuality, activeFace);
 			options.onOpen?.();
 		});
 		if (!useTouchCardUi()) {
-			art.addEventListener("mouseenter", () => plugin.preview.show(display, art, plugin.settings.imageQuality));
+			art.addEventListener("mouseenter", () => plugin.preview.show(display, art, plugin.settings.imageQuality, activeFace));
 			art.addEventListener("mouseleave", () => plugin.preview.hide());
 		}
 	}
