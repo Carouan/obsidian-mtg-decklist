@@ -30,7 +30,7 @@ export function cardImageFaces(card: ScryfallCard, quality: ImageQuality): CardI
 	const faces = card.card_faces ?? [];
 	const faceUrls = faces.map((face) => imageUrlForQuality(face.image_uris, quality));
 	const isDoubleSided = DOUBLE_SIDED_LAYOUTS.has(card.layout ?? "") ||
-		(!card.image_uris && faceUrls.length > 1 && faceUrls.every(Boolean));
+		(!card.layout && !card.image_uris && faceUrls.length > 1 && faceUrls.every(Boolean));
 
 	if (isDoubleSided && faceUrls.length > 1 && faceUrls.every(Boolean)) {
 		return faces.map((face, index) => ({
