@@ -14,6 +14,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Record latest run ID for direct artifact retrieval
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          printf '{"run_id":%s,"sha":"%s","run_url":"https://github.com/%s/actions/runs/%s"}\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > /tmp/mobile-build-run.json
+          CONTENT=$(base64 -w0 /tmp/mobile-build-run.json)
+          SHA=$(gh api "repos/$GITHUB_REPOSITORY/contents/mobile-build-run.json?ref=build/mobile-fixes-metadata" --jq '.sha' 2>/dev/null || true)
+          if [ -n "$SHA" ]; then
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/mobile-build-run.json" -f message="ci: index latest mobile build" -f branch="build/mobile-fixes-metadata" -f content="$CONTENT" -f sha="$SHA" >/dev/null
+          else
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/mobile-build-run.json" -f message="ci: index latest mobile build" -f branch="build/mobile-fixes-metadata" -f content="$CONTENT" >/dev/null
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
