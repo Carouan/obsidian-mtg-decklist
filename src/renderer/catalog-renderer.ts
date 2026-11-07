@@ -409,6 +409,7 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 			if (options.view === "gallery") {
 				renderGalleryCard(slot, card, plugin, options.language, {
 					name,
+					canonicalCard: canonical,
 					subtitle: `${canonical.set_name ?? canonical.set ?? ""} · ${canonical.collector_number ?? ""}`,
 					onCopy: copyPrinting,
 					legalityFormat: options.legality,
@@ -416,9 +417,9 @@ export function createCatalogProcessor(plugin: MtgDecklistPlugin, kind: CatalogK
 			} else {
 				const row = slot.createDiv({ cls: "mtg-catalog-row" });
 				const link = row.createEl("button", { cls: "mtg-catalog-card-link", text: name });
-				link.addEventListener("click", () => plugin.preview.show(card, link, plugin.settings.imageQuality));
+				link.addEventListener("click", () => plugin.preview.openDetails(card, plugin.settings.imageQuality, 0, canonical));
 				if (!useTouchCardUi()) {
-					link.addEventListener("mouseenter", () => plugin.preview.show(card, link, plugin.settings.imageQuality));
+					link.addEventListener("mouseenter", () => plugin.preview.show(card, link, plugin.settings.imageQuality, 0, canonical));
 					link.addEventListener("mouseleave", () => plugin.preview.hide());
 				}
 				row.createSpan({ cls: "mtg-catalog-card-set", text: `${canonical.set_name ?? canonical.set ?? ""} · ${canonical.collector_number ?? ""}` });

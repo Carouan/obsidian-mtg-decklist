@@ -940,12 +940,72 @@
 	align-items: center;
 	gap: 0.75em;
 	max-height: 92vh;
+	max-width: min(92vw, 780px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 0.3em 0.5em 0.6em;
 }
 
 .mtg-card-preview-overlay .mtg-card-preview-img {
 	max-width: 90vw;
 	max-height: min(78vh, 90vh);
 	border-radius: 12px;
+}
+
+.mtg-card-preview-overlay-inner.has-text .mtg-card-preview-img {
+	max-height: 42vh;
+}
+.mtg-card-preview-text-toggle {
+	flex: 0 0 auto;
+	font-weight: 600;
+}
+.mtg-card-preview-text-panel {
+	width: min(100%, 620px);
+	flex: 0 0 auto;
+	padding: 0.8em 1em;
+	border-radius: 9px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	box-sizing: border-box;
+	font-size: 0.95em;
+	text-align: left;
+}
+.mtg-card-preview-text-panel.is-hidden { display: none; }
+.mtg-card-preview-text-face + .mtg-card-preview-text-face {
+	border-top: 1px solid var(--background-modifier-border);
+	margin-top: 1em;
+	padding-top: 0.8em;
+}
+.mtg-card-preview-text-name {
+	font-size: 1.06em;
+	font-weight: 700;
+	margin-bottom: 0.3em;
+}
+.mtg-card-preview-text-heading {
+	font-weight: 700;
+	font-size: 0.78em;
+	color: var(--text-muted);
+	margin: 0.75em 0 0.25em;
+}
+.mtg-card-preview-text-type {
+	font-weight: 600;
+	margin-bottom: 0.2em;
+}
+.mtg-card-preview-text-rules {
+	white-space: pre-wrap;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+.mtg-card-preview-text-status {
+	font-size: 0.75em;
+	color: var(--text-muted);
+	margin-top: 0.7em;
+}
+.mtg-gallery-image-fallback {
+	font-size: 0.68em;
+	color: var(--text-muted);
+	text-align: center;
+	margin-top: 0.2em;
 }
 
 .mtg-card-preview-tap-actions {

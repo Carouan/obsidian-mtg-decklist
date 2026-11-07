@@ -4,6 +4,7 @@ import { ARCHIDEKT_DEFAULT_TTL_MINUTES, MOXFIELD_DEFAULT_TTL_MINUTES } from "./u
 import { t } from "./utils/i18n";
 import { LANGUAGE_OPTIONS, type CardLanguage as SupportedCardLanguage } from "./utils/languages";
 import { CATALOG_PAGE_SIZES, CATALOG_COLUMN_COUNTS, DEFAULT_CATALOG_PAGE_SIZE, DEFAULT_CATALOG_COLUMNS } from "./utils/catalog-layout";
+import type { CardImagePreference } from "./scryfall/card-presentation";
 
 export type GroupingMode = "auto" | "manual" | "respect-manual";
 export type CardSortOrder = "source" | "name" | "cmc-name";
@@ -24,6 +25,7 @@ export interface MtgDecklistSettings {
 	groupingMode: GroupingMode;
 	cardSortOrder: CardSortOrder;
 	imageQuality: ImageQuality;
+	imagePreference: CardImagePreference;
 	cardLanguage: CardLanguage;
 	catalogPageSize: number;
 	catalogColumns: number;
@@ -41,6 +43,7 @@ export const DEFAULT_SETTINGS: MtgDecklistSettings = {
 	groupingMode: "respect-manual",
 	cardSortOrder: "name",
 	imageQuality: "normal",
+	imagePreference: "readable",
 	cardLanguage: "en",
 	catalogPageSize: DEFAULT_CATALOG_PAGE_SIZE,
 	catalogColumns: DEFAULT_CATALOG_COLUMNS,
@@ -142,6 +145,22 @@ export class MtgDecklistSettingTab extends PluginSettingTab {
 									.setValue(plugin.settings.imageQuality)
 									.onChange(async (value) => {
 										plugin.settings.imageQuality = value as ImageQuality;
+										await plugin.saveSettings();
+									}),
+							);
+						},
+					},
+					{
+						name: tr("Image preference"),
+						desc: tr("Prefer a verified HD English image when the localized scan is low quality, or keep the localized printing even if blurry. Translated card names remain available."),
+						render: (setting) => {
+							setting.addDropdown((dd) =>
+								dd
+									.addOption("readable", tr("Prefer readable HD images"))
+									.addOption("localized", tr("Prefer localized images"))
+									.setValue(plugin.settings.imagePreference ?? "readable")
+									.onChange(async (value) => {
+										plugin.settings.imagePreference = value as CardImagePreference;
 										await plugin.saveSettings();
 									}),
 							);

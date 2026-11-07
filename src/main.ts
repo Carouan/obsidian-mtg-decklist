@@ -49,7 +49,11 @@ export default class MtgDecklistPlugin extends Plugin {
 		this.client = new ScryfallClient(this.cardCache);
 		this.moxfield = new MoxfieldClient(data?.moxfield ?? {});
 		this.archidekt = new ArchidektClient(data?.archidekt ?? {});
-		this.preview = new CardPreview(() => this.settings.cardLanguage);
+		this.preview = new CardPreview(
+			() => this.settings.cardLanguage,
+			() => this.settings.imagePreference ?? "readable",
+			(card) => this.client.currentCardText(card),
+		);
 
 		this.registerMarkdownCodeBlockProcessor(DECKLIST_BLOCK_LANG, createDecklistProcessor(this));
 		this.registerMarkdownCodeBlockProcessor(COMBO_BLOCK_LANG, createComboProcessor(this));

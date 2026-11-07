@@ -323,6 +323,7 @@ function renderSection(
 				: null;
 			renderGalleryCard(list, card, plugin, language, {
 				name: resolved.entry.name,
+				canonicalCard: resolved.card ?? undefined,
 				quantity: resolved.entry.quantity,
 				legalityFormat,
 				colorIdentityViolation: resolved.card ? violations.get(resolved.card.id) : undefined,

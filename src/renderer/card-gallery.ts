@@ -7,6 +7,7 @@ import { setIcon } from "obsidian";
 import { t } from "../utils/i18n";
 import { renderLegalityBadge } from "./legality-badge";
 import { cardImageFaces } from "../ui/card-image-faces";
+import { preferredImageCard } from "../scryfall/card-presentation";
 
 /** Smallest useful card image. Higher resolution remains available in the preview. */
 export function galleryImageUrl(card: ScryfallCard): string | null {
@@ -21,12 +22,14 @@ export function renderGalleryCard(
 	options: {
 		name: string; quantity?: number; subtitle?: string; onOpen?: () => void;
 		onCopy?: () => void; legalityFormat?: LegalityFormat; colorIdentityViolation?: string[];
+		canonicalCard?: ScryfallCard;
 	},
 ): HTMLElement {
 	const tile = parent.createDiv({ cls: "mtg-gallery-tile" });
 	const display = card ?? undefined;
 	const title = card ? localizedDisplayName(card, card) : options.name;
-	const faces = card ? cardImageFaces(card, "normal") : [];
+	const imageCard = card ? preferredImageCard(card, options.canonicalCard, plugin.settings.imagePreference ?? "readable") : null;
+	const faces = imageCard ? cardImageFaces(imageCard, "normal") : [];
 	const imageUrl = faces[0]?.url ?? null;
 	let activeFace = 0;
 	let img: HTMLImageElement | null = null;
@@ -92,16 +95,19 @@ export function renderGalleryCard(
 	if (display) {
 		art.addEventListener("click", (event) => {
 			event.preventDefault();
-			plugin.preview.show(display, art, plugin.settings.imageQuality, activeFace);
+			plugin.preview.openDetails(display, plugin.settings.imageQuality, activeFace, options.canonicalCard);
 			options.onOpen?.();
 		});
 		if (!useTouchCardUi()) {
-			art.addEventListener("mouseenter", () => plugin.preview.show(display, art, plugin.settings.imageQuality, activeFace));
+			art.addEventListener("mouseenter", () => plugin.preview.show(display, art, plugin.settings.imageQuality, activeFace, options.canonicalCard));
 			art.addEventListener("mouseleave", () => plugin.preview.hide());
 		}
 	}
 	const label = tile.createDiv({ cls: "mtg-gallery-caption", text: title });
 	label.setAttribute("title", title);
+	if (card && imageCard && imageCard !== card && card.lang !== "en") {
+		tile.createDiv({ cls: "mtg-gallery-image-fallback", text: t(language, "English HD image used") });
+	}
 	if (options.subtitle) tile.createDiv({ cls: "mtg-gallery-subtitle", text: options.subtitle });
 	return tile;
 }

@@ -51,6 +51,7 @@ export interface ScryfallCard {
 	printed_name?: string;
 	printed_text?: string;
 	printed_type_line?: string;
+	oracle_text?: string;
 	mana_cost?: string;
 	cmc?: number;
 	type_line?: string;

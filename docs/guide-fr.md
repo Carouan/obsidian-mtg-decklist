@@ -121,6 +121,39 @@ view: gallery
 
 ## Index visuel des extensions et indicateurs de légalité
 
+### Qualité des scans et textes des cartes
+
+Dans **Paramètres → MTG Decklist → Image preference** (*Préférence pour les images* en français),
+deux choix sont proposés :
+
+- **Priorité aux images HD lisibles** (défaut) : si Scryfall classe un scan français
+  comme de basse résolution ou comme image de remplacement, et que l'impression
+  anglaise correspondante possède un scan HD confirmé, l'illustration anglaise
+  remplace l'image floue. Le **nom français** est conservé.
+- **Priorité aux images dans la langue choisie** : afficher la version française
+  même si la numérisation est de mauvaise qualité.
+
+Le paramètre **Qualité de l'image** (`normal`, `large`, `png`) reste indépendant :
+agrandir un scan de mauvaise qualité ne crée pas de détails supplémentaires.
+
+Pour lire une carte, **cliquer sur son image dans une galerie**, puis sur
+**Afficher le texte**. Le panneau distingue clairement :
+
+- le **texte imprimé traduit**, disponible selon les données de l'édition,
+  qui peut être ancien ou incomplet ;
+- le **texte Oracle anglais**, de référence pour les règles actuelles.
+
+Le texte Oracle est redemandé à Scryfall **uniquement lors de l'ouverture
+du panneau de texte**, avec un cache mémoire court. Si la requête échoue,
+le panneau indique que la version en cache n'a pas été vérifiée. Pour les
+cartes recto-verso, le texte suit la face sélectionnée ; pour les cartes
+*split* et *Adventure*, les deux descriptions s'affichent.
+
+Il n'existe pas, dans cette API, de « texte Oracle français officiel »
+automatiquement corrigé : il ne faut donc pas confondre une traduction
+imprimée avec le texte Oracle à jour. Aucune traduction automatique n'est
+présentée comme officielle.
+
 Le bloc `extension-index` présente toutes les extensions avec un tableau ou une **galerie organisée par blocs** :
 
 ````markdown

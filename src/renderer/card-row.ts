@@ -72,7 +72,7 @@ export function renderCardRow(parent: HTMLElement, resolved: ResolvedEntry, opts
 			link.addEventListener("click", (e) => {
 				e.preventDefault();
 				e.stopPropagation();
-				opts.preview.show(displayCard, link, opts.imageQuality);
+				opts.preview.show(displayCard, link, opts.imageQuality, 0, card ?? undefined);
 			});
 		} else {
 			const link = nameEl.createEl("a", {
@@ -133,12 +133,12 @@ export function renderCardRow(parent: HTMLElement, resolved: ResolvedEntry, opts
 	if (useTouchCardUi()) {
 		const onRowTap: EventListener = (e) => {
 			if ((e.target as HTMLElement | null)?.closest("a.mtg-card-link")) return;
-			opts.preview.show(displayCard ?? card, row, opts.imageQuality);
+				opts.preview.show(displayCard ?? card, row, opts.imageQuality, 0, card);
 		};
 		row.addClass("mtg-card-row-tappable");
 		opts.registerDom(row, "click", onRowTap);
 	} else {
-		const debounced = debounce(() => opts.preview.show(displayCard ?? card, row, opts.imageQuality), opts.hoverDelayMs);
+		const debounced = debounce(() => opts.preview.show(displayCard ?? card, row, opts.imageQuality, 0, card), opts.hoverDelayMs);
 		const onEnter: EventListener = () => debounced.call();
 		const onLeave: EventListener = () => {
 			debounced.cancel();

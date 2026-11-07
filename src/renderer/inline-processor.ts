@@ -193,13 +193,13 @@ export function attachCardBehavior(
 		el.addEventListener("click", (ev) => {
 			ev.preventDefault();
 			void ensureCard().then((card) => {
-				if (card) plugin.preview.show(card, el, plugin.settings.imageQuality);
+				if (card) plugin.preview.show(card, el, plugin.settings.imageQuality, 0, cached ?? undefined);
 			});
 		});
 	} else {
 		const debounced = debounce(() => {
 			void ensureCard().then((card) => {
-				if (card) plugin.preview.show(card, el, plugin.settings.imageQuality);
+				if (card) plugin.preview.show(card, el, plugin.settings.imageQuality, 0, cached ?? undefined);
 			});
 		}, plugin.settings.hoverDelayMs);
 		el.addEventListener("mouseenter", () => debounced.call());

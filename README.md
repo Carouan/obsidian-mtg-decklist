@@ -256,6 +256,24 @@ Only **English and French are currently supported** for UI text and card preview
 
 ## Interactive decks, extensions and card printings
 
+**Readable images and Oracle text.** In the plugin settings, **Image preference**
+defaults to **Prefer readable HD images**. When Scryfall identifies a localized
+scan as low-resolution/placeholder and the corresponding English printing is
+verified HD, the gallery and preview use the English HD image, while keeping
+the localized card name and available translated printed text. Choose
+**Prefer localized images** to retain the foreign-language scan even if blurry.
+This does not falsely treat every English printing as HD.
+
+Click any gallery card to open a detailed preview on desktop or mobile, then
+select **Show card text**. This shows the localized *printed* text, if provided
+by Scryfall, **separately** from the English *Oracle* text used for current
+rules. The plugin makes an on-demand Scryfall lookup by the card's exact ID
+when the text panel opens, caching the result briefly in memory. If offline,
+the interface explicitly marks the Oracle text as cached/unverified. The
+printed translation is historical and does not receive automatic errata.
+Double-faced cards follow the selected face; split/adventure cards show both
+spell texts. No Gatherer scraping or translation invention is required.
+
 **Visual set index.** The new `extension-index` block loads the Scryfall set catalog once (cached in memory), then lets you filter and sort it locally without repeatedly downloading card lists:
 
 ````markdown

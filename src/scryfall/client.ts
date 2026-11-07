@@ -42,6 +42,17 @@ export class ScryfallClient {
 		return Array.isArray(data?.data) ? data.data : [];
 	}
 
+	/**
+	 * Retrieve the current Scryfall card object only on explicit user request.
+	 * Its oracle_text is the updated English rules text, not the historical
+	 * printed_text translation. Cached briefly in memory, never persisted.
+	 */
+	async currentCardText(card: ScryfallCard): Promise<ScryfallCard | null> {
+		if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(card.id)) return null;
+		const response = await this.requestCatalog<ScryfallCard>(`${SCRYFALL_CARDS_BASE}/${card.id}`);
+		return response?.id === card.id ? response : null;
+	}
+
 	async findSet(nameOrCode: string, language: CardLanguage = "en"): Promise<ScryfallSet | null> {
 		const normalized = nameOrCode.trim().toLowerCase();
 		if (!normalized || normalized.length > 80) return null;
@@ -400,7 +411,7 @@ export function validateCatalogUrl(value: string): string {
 	const url = new URL(value);
 	if (
 		url.origin !== "https://api.scryfall.com" ||
-		!/^\/(?:cards\/search|cards\/[a-z0-9]{2,6}\/[0-9a-z★]+\/[a-z]{2,3}|sets(?:\/[a-z0-9]{2,6})?)$/.test(url.pathname)
+		!/^\/(?:cards\/search|cards\/[a-z0-9]{2,6}\/[0-9a-z★]+\/[a-z]{2,3}|cards\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|sets(?:\/[a-z0-9]{2,6})?)$/i.test(url.pathname)
 	) throw new Error("Invalid Scryfall catalog URL");
 	return url.toString();
 }
