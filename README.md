@@ -6,7 +6,7 @@
 
 An [Obsidian](https://obsidian.md) plugin that turns fenced ` ```decklist ` code blocks into rich, Moxfield-style Magic: The Gathering decklists with Scryfall card data, hover/tap image previews, and at-a-glance deck stats. It also lets you sprinkle inline mana symbols and hoverable card links throughout your regular notes.
 
-**Documentation:** [Quick start](#quick-start) · [Guide utilisateur en français](docs/guide-fr.md) · [Adding a language / contributing a translation](docs/adding-a-language.md)
+**Documentation:** [Quick start](#quick-start) · [Guide utilisateur en français](docs/guide-fr.md) · [Guide pratique interactif (à ouvrir dans Obsidian)](examples/Guide-pratique-MTG-Decklist.md) · [Adding a language / contributing a translation](docs/adding-a-language.md)
 
 ## Screenshots
 
@@ -29,7 +29,10 @@ Inline mana symbols and hoverable card links in a regular note:
 - **French card names, previews and interface** – Opt in to French names, matching art, headings, statistics, combo labels and settings. Fall back to English for cards without a French printing; the default remains English.
 - **Live sorting and card galleries** – Switch an existing rendered deck between alphabetical, mana-value or source order, and between compact list and full-card gallery without editing the note.
 - **Scryfall catalog explorer** – Explore an extension with color/type/rarity filters applied **before fetching its cards**, or list the printings of any card in a `cardlist` block. Browse paged, lazily loaded visual results and copy exact set/collector references.
-- **Quick editor templates** – Type `deck-cmd-fr`, `deck-60-fr`, `deck-vintage-en`, `foudre-ext` or `ext-mirage` on a line and select the suggestion to insert the corresponding code block. No Templater dependency.
+- **Quick editor templates** – Type `deck-cmd-fr`, `deck-60-fr`, `deck-vintage-en`, `foudre-ext`, `ext-mirage` or `ext-index-fr` on a line and select the suggestion to insert the corresponding code block. No Templater dependency.
+- **Interactive set index** – Filter and sort set releases; compact block galleries display up to three historical block panels per row, each using real Scryfall expansion icons.
+- **Double-faced cards** – Flip genuinely double-sided cards in the gallery; read both sides in previews without inventing a back for split/adventure cards.
+- **Readable images and Oracle text** – Prefer verified HD scans when translated art is too blurry, and display localized printed text separately from on-demand current English Oracle rules text.
 - **Color identity & legality warnings** – Inline icons flag cards that break the deck's color identity or are not legal in your chosen format.
 - **Card role tags** – Manually tag cards with roles like `#ramp`, `#draw`, `#removal`, `#boardwipe`, `#counterspell`, `#wincon` (and your own custom tags) — each shows up as a small coloured icon next to the card name.
 - **Specific printings** – Pin a card to one exact printing with `(SET) NUMBER` syntax (e.g. `1 Ancient Den (MRD) 278`), the same style Moxfield and MTGO exports use — the card and its image preview use that printing.
@@ -45,7 +48,7 @@ Inline mana symbols and hoverable card links in a regular note:
 
 ## Privacy
 
-This plugin **does not access** your system clipboard. Export commands open a modal with the generated text so you can copy it yourself or insert it at the cursor. Card data is fetched from the public [Scryfall API](https://scryfall.com/docs/api) and, optionally, public Moxfield or Archidekt deck URLs you paste into a block. Nothing is sent to any server other than those endpoints.
+This plugin **does not read** your system clipboard. Export commands open a modal with generated text so you can copy it yourself or insert it at the cursor; **Copy printing** buttons write a card reference to the clipboard only when you click them. Card data is fetched from the public [Scryfall API](https://scryfall.com/docs/api) and, optionally, public Moxfield or Archidekt deck URLs you paste into a block. Nothing is sent to any server other than those endpoints.
 
 ## Installation
 
@@ -246,7 +249,7 @@ legality: modern
 ```
 ````
 
-Card names in the source decklist should remain in their normal **English/Oracle form** for reliable imports, exports, legality checks and card matching. In French mode, the rendered names and hover/tap preview images use French printings when Scryfall provides them; otherwise the existing English representation is retained. Without a pinned printing, the plugin prefers a French printing with a true high-resolution scan over a more recent low-resolution scan. If you pin a printing with `(SET) NUMBER`, the exact French printing is preferred even if its scan is lower-quality; when unavailable, another French printing may be used.
+Card names in the source decklist should remain in their normal **English/Oracle form** for reliable imports, exports, legality checks and card matching. In French mode, rendered names and preview images use French printings when available; otherwise English is shown. Without a pinned printing, the plugin prefers a French printing with a true high-resolution scan over a more recent low-resolution scan. A pinned `(SET) NUMBER` favors the matching set; if its localized scan is marked low-resolution and the English version is confirmed HD, the **readable-image** preference can replace only the visual with the English scan while preserving translated names and printed text. Select **Prefer localized images** to override this automatic preference.
 
 **Image quality:** The global preview setting supports `small`, `normal`, `large`, and now `png` (up to 745 × 1040 px). PNG avoids additional JPEG compression but cannot restore detail to an inherently low-resolution scan. The plugin does not stretch or synthesize missing art.
 
